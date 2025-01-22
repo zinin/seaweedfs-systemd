@@ -1,0 +1,15 @@
+[Unit]
+Description=SeaweedFS Service (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/opt/seaweedfs/seaweedfs-service.sh %i
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

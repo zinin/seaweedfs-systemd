@@ -1,0 +1,43 @@
+Write a Groovy script that will:
+
+1. Access GitHub and determine the latest release for https://github.com/seaweedfs/seaweedfs.
+
+2. Download the latest release using the following link format:
+https://github.com/seaweedfs/seaweedfs/releases/download/<last_release_number>/linux_amd64_full.tar.gz
+where <last_release_number> is the number of the latest release.
+
+3. Extract the executable file weed from the archive. When executed, this file should output the following:
+
+```
+./weed
+
+SeaweedFS: store billions of files and serve them fast!
+
+Usage:
+
+        weed command [arguments]
+
+The commands are:
+
+    backup      incrementally backup a volume to local folder
+    filer       start a file server that points to a master server, or a list of master servers
+    filer.backup resume-able continuously replicate files from a SeaweedFS cluster to another location defined in replication.toml
+    filer.meta.backup continuously backup filer meta data changes to anther filer store specified in a backup_filer.toml
+    filer.remote.gateway resumable continuously write back bucket creation, deletion, and other local updates to remote object store
+    filer.remote.sync resumable continuously write back updates to remote storage
+    filer.sync  resumable continuous synchronization between two active-active or active-passive SeaweedFS clusters
+    iam         start a iam API compatible server
+    master      start a master server
+    master.follower start a master follower
+    mount       mount weed filer to a directory as file system in userspace(FUSE)
+    mq.broker   <WIP> start a message queue broker
+    s3          start a s3 API compatible server that is backed by a filer
+    server      start a master server, a volume server, and optionally a filer and a S3 gateway
+    volume      start a volume server
+    webdav      start a webdav server that is backed by a filer
+
+Use "weed help [command]" for more information about a command.
+
+4. Create an empty file named help.txt.
+
+5. For each available command, run weed help [command] and append the output (both stdout and stderr) to the end of the help.txt file.

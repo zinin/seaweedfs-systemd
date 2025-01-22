@@ -1,0 +1,85 @@
+---
+- name: Ensure group "{{ seaweedfs_group }}" exists with correct gid
+  ansible.builtin.group:
+    name: "{{ seaweedfs_group }}"
+    state: present
+    gid: "{{ seaweedfs_gid }}"
+  tags: seaweedfs_user_setup
+
+- name: Ensure user "{{ seaweedfs_user }}" exists with correct uid
+  ansible.builtin.user:
+    name: "{{ seaweedfs_user }}"
+    uid: "{{ seaweedfs_uid }}"
+    system: yes
+    create_home: yes
+    home: "{{ seaweedfs_home }}"
+    shell: /usr/sbin/nologin
+  tags: seaweedfs_user_setup
+
+- name: Create dist directory in root home folder
+  ansible.builtin.file:
+    path: "{{ seaweedfs_dist_dir }}"
+    state: directory
+    mode: 0775
+
+- name: Create seaweedfs folder
+  ansible.builtin.file:
+    path: "{{ seaweedfs_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+
+- name: Create /etc/seaweedfs folder
+  ansible.builtin.file:
+    path: "{{ seaweedfs_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+
+- name: Download seaweedfs
+  ansible.builtin.get_url:
+    url: https://github.com/seaweedfs/seaweedfs/releases/download/{{ seaweedfs_version }}/linux_amd64_full.tar.gz
+    dest: "{{ seaweedfs_dist_dir }}/linux_amd64_full.tar.gz"
+  tags: seaweedfs_download
+
+- name: Extract linux_amd64_full.tar.gz into /opt/seaweedfs/
+  ansible.builtin.unarchive:
+    src: "{{ seaweedfs_dist_dir }}/linux_amd64_full.tar.gz"
+    dest: "{{ seaweedfs_install_dir }}"
+    owner: root
+    group: root
+    remote_src: yes
+  tags: seaweedfs_install
+
+- name: Delete dist directory
+  ansible.builtin.file:
+    state: absent
+    path: "{{ seaweedfs_dist_dir }}"
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: "{{ seaweedfs_install_dir }}/weed"
+    dest: /sbin/mount.weed
+    state: link
+
+- name: Copy systemd services and scripts
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "seaweedfs@.service", dest: "/etc/systemd/system/", mode: "0644" }
+    - { src: "seaweedfs-service.sh", dest: "/opt/seaweedfs/", mode: "0755" }
+    - { src: "seaweedfs-systemd.xsd", dest: "/opt/seaweedfs/", mode: "0644" }
+
+- name: Install xmlstarlet
+  ansible.builtin.apt:
+    name: xmlstarlet
+    state: present
+
+- name: Install libxml2-utils
+  ansible.builtin.apt:
+    name: libxml2-utils
+    state: present

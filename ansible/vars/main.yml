@@ -1,0 +1,13 @@
+---
+seaweedfs_version: 3.82
+seaweedfs_user: seaweedfs
+seaweedfs_group: seaweedfs
+seaweedfs_uid: 2000
+seaweedfs_gid: 2000
+
+seaweedfs_home: /var/lib/seaweedfs
+seaweedfs_install_dir: /opt/seaweedfs
+seaweedfs_config_dir: /etc/seaweedfs
+seaweedfs_dist_dir: /ansible/dist
+
+

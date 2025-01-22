@@ -1,0 +1,12 @@
+I have an XSD schema that is intended to define the enumeration of instances for launching SeaweedFS, including all possible arguments.
+
+Below is the description of the commands:
+
+help.txt
+
+I need to refine the XSD schema to ensure it aligns with the list of commands.
+Below is the current XSD schema:
+
+seaweedfs-systemd.xsd
+
+Please provide the updated schema in its entirety.

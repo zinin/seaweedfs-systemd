@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:tns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+           targetNamespace="http://zinin.ru/xml/ns/seaweedfs-systemd"
+           xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd http://zinin.ru/xml/ns/seaweedfs-systemd/seaweedfs-systemd-1.0.xsd"
+           elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+    <xs:element name="services">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="service" type="tns:ServiceType" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ServiceType">
+        <xs:sequence>
+            <xs:element name="id" type="xs:string"/>
+            <xs:element name="type" type="tns:ServiceTypeEnum"/>
+            <xs:element name="run-user" type="xs:string"/>
+            <xs:element name="run-group" type="xs:string"/>
+            <xs:element name="run-dir" type="xs:string"/>
+            <xs:element name="config-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="logs-dir" type="xs:string" minOccurs="0"/>
+            <xs:choice>
+                <xs:element name="server-args" type="tns:ServerArgs"/>
+                <xs:element name="master-args" type="tns:MasterArgs"/>
+                <xs:element name="volume-args" type="tns:VolumeArgs"/>
+                <xs:element name="filer-sync-args" type="tns:FilerSyncArgs"/>
+                <xs:element name="backup-args" type="tns:BackupArgs"/>
+                <xs:element name="filer-args" type="tns:FilerArgs"/>
+                <xs:element name="filer-backup-args" type="tns:FilerBackupArgs"/>
+                <xs:element name="filer-meta-backup-args" type="tns:FilerMetaBackupArgs"/>
+                <xs:element name="filer-remote-gateway-args" type="tns:FilerRemoteGatewayArgs"/>
+                <xs:element name="filer-remote-sync-args" type="tns:FilerRemoteSyncArgs"/>
+                <xs:element name="iam-args" type="tns:IamArgs"/>
+                <xs:element name="mq-broker-args" type="tns:MqBrokerArgs"/>
+                <xs:element name="s3-args" type="tns:S3Args"/>
+                <xs:element name="webdav-args" type="tns:WebdavArgs"/>
+                <xs:element name="mount-args" type="tns:MountArgs"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="ServiceTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="server"/>
+            <xs:enumeration value="master"/>
+            <xs:enumeration value="volume"/>
+            <xs:enumeration value="filer.sync"/>
+            <xs:enumeration value="mount"/>
+            <xs:enumeration value="backup"/>
+            <xs:enumeration value="filer"/>
+            <xs:enumeration value="filer.backup"/>
+            <xs:enumeration value="filer.meta.backup"/>
+            <xs:enumeration value="filer.remote.gateway"/>
+            <xs:enumeration value="filer.remote.sync"/>
+            <xs:enumeration value="iam"/>
+            <xs:enumeration value="mq.broker"/>
+            <xs:enumeration value="s3"/>
+            <xs:enumeration value="webdav"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="BackupArgs">
+        <xs:sequence>
+            <xs:element name="dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="volumeId" type="xs:int" minOccurs="0"/>
+            <xs:element name="server" type="xs:string" minOccurs="0"/>
+            <xs:element name="collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="ttl" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerArgs">
+        <xs:sequence>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="defaultReplicaPlacement" type="xs:string" minOccurs="0"/>
+            <xs:element name="defaultStoreDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="dirListLimit" type="xs:int" minOccurs="0"/>
+            <xs:element name="disableDirListing" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="downloadMaxMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="encryptVolumeData" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iam.ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="iam.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.readonly" type="xs:int" minOccurs="0"/>
+            <xs:element name="rack" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.config" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.domainName" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
+            <xs:element name="saveToFilerLimit" type="xs:int" minOccurs="0"/>
+            <xs:element name="ui.deleteDir" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="webdav" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="webdav.cacheCapacityMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.cert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.key.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.replication" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerBackupArgs">
+        <xs:sequence>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerPath" type="xs:string" minOccurs="0"/>
+            <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="disableErrorRetry" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="doDeleteFiles" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filerExcludeFileName" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerExcludePaths" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="ignore404Error" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="retentionDays" type="xs:int" minOccurs="0"/>
+            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerMetaBackupArgs">
+        <xs:sequence>
+            <xs:element name="config" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="restart" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerRemoteGatewayArgs">
+        <xs:sequence>
+            <xs:element name="createBucketAt" type="xs:string" minOccurs="0"/>
+            <xs:element name="createBucketWithRandomSuffix" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="exclude" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="include" type="xs:string" minOccurs="0"/>
+            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerRemoteSyncArgs">
+        <xs:sequence>
+            <xs:element name="dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="storageClass" type="xs:string" minOccurs="0"/>
+            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="IamArgs">
+        <xs:sequence>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MqBrokerArgs">
+        <xs:sequence>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="rack" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="S3Args">
+        <xs:sequence>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="config" type="xs:string" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="domainName" type="xs:string" minOccurs="0"/>
+            <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.https" type="xs:int" minOccurs="0"/>
+            <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="WebdavArgs">
+        <xs:sequence>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="cert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="key.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="replication" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MountArgs">
+        <xs:sequence>
+            <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="ttl" type="xs:int" minOccurs="0"/>
+            <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
+            <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="allowOthers" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="nonempty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="cacheMetaTtlSec" type="xs:int" minOccurs="0"/>
+            <xs:element name="chunkSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="concurrentWriters" type="xs:int" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="dirAutoCreate" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="disableXAttr" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="map.gid" type="xs:string" minOccurs="0"/>
+            <xs:element name="map.uid" type="xs:string" minOccurs="0"/>
+            <xs:element name="readRetryTime" type="xs:duration" minOccurs="0"/>
+            <xs:element name="umask" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ServerArgs">
+        <xs:sequence>
+            <xs:element name="dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="master" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.allowedOrigins" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.defaultReplicaPlacement" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.dirListLimit" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.disableDirListing" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.downloadMaxMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iam.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.defaultReplication" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.electionTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.garbageThreshold" type="xs:float" minOccurs="0"/>
+            <xs:element name="master.heartbeatInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.maxParallelVacuumPerServer" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.metrics.address" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.metrics.intervalSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.peers" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.raftBootstrap" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="master.raftHashicorp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="master.resumeState" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="master.volumePreallocate" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="master.volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
+            <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="mq.broker" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="mq.broker.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="rack" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.config" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.domainName" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.localSocket" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.dir.idx" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.fileSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.hasSlowRead" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume.images.fix.orientation" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume.index" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.index.leveldbTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.inflightUploadDataTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="volume.max" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.minFreeSpace" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.minFreeSpacePercent" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.port.public" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.pprof" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume.preStopSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.publicUrl" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.readBufferSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.readMode" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="webdav.cacheCapacityMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.cert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.key.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="webdav.replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MasterArgs">
+        <xs:sequence>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="mdir" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="peers" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="defaultReplication" type="xs:string" minOccurs="0"/>
+            <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="electionTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="garbageThreshold" type="xs:float" minOccurs="0"/>
+            <xs:element name="heartbeatInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="maxParallelVacuumPerServer" type="xs:int" minOccurs="0"/>
+            <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="metrics.address" type="xs:string" minOccurs="0"/>
+            <xs:element name="metrics.intervalSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="raftBootstrap" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="raftHashicorp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="resumeState" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volumePreallocate" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
+            <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="VolumeArgs">
+        <xs:sequence>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="dir.idx" type="xs:string" minOccurs="0"/>
+            <xs:element name="mserver" type="xs:string" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="compactionMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="hasSlowRead" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="images.fix.orientation" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="index" type="xs:string" minOccurs="0"/>
+            <xs:element name="index.leveldbTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="inflightUploadDataTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="max" type="xs:string" minOccurs="0"/>
+            <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="minFreeSpace" type="xs:string" minOccurs="0"/>
+            <xs:element name="minFreeSpacePercent" type="xs:string" minOccurs="0"/>
+            <xs:element name="port.public" type="xs:int" minOccurs="0"/>
+            <xs:element name="pprof" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="preStopSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="publicUrl" type="xs:string" minOccurs="0"/>
+            <xs:element name="rack" type="xs:string" minOccurs="0"/>
+            <xs:element name="readBufferSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="readMode" type="xs:string" minOccurs="0"/>
+            <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FilerSyncArgs">
+        <xs:sequence>
+            <xs:element name="a" type="xs:string"/>
+            <xs:element name="b" type="xs:string"/>
+            <xs:element name="a.collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="b.collection" type="xs:string" minOccurs="0"/>
+            <xs:element name="a.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="b.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="concurrency" type="xs:int" minOccurs="0"/>
+            <xs:element name="isActivePassive" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="a.debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="b.debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="a.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="b.disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="a.doDeleteFiles" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="b.doDeleteFiles" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="a.excludePaths" type="xs:string" minOccurs="0"/>
+            <xs:element name="b.excludePaths" type="xs:string" minOccurs="0"/>
+            <xs:element name="a.filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="b.filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="a.fromTsMs" type="xs:int" minOccurs="0"/>
+            <xs:element name="b.fromTsMs" type="xs:int" minOccurs="0"/>
+            <xs:element name="a.replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="b.replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="a.ttlSec" type="xs:int" minOccurs="0"/>
+            <xs:element name="b.ttlSec" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>
