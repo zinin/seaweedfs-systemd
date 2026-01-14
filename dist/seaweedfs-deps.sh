@@ -452,6 +452,11 @@ case "$COMMAND" in
             exit 1
         fi
         echo "Applying dependencies from: $CONFIG_PATH"
+
+        if ! run_validations "$CONFIG_PATH"; then
+            exit 1
+        fi
+
         clean_dropins false
         process_config "$CONFIG_PATH" false
         echo ""
@@ -466,10 +471,16 @@ case "$COMMAND" in
         fi
         echo "Checking dependencies from: $CONFIG_PATH (dry-run)"
         echo ""
+
+        if ! run_validations "$CONFIG_PATH"; then
+            echo ""
+            echo "Fix validation errors before applying"
+            exit 1
+        fi
+
+        echo ""
         echo "=== Files to remove ==="
         clean_dropins true
-        echo ""
-        echo "=== Files to create ==="
         process_config "$CONFIG_PATH" true
         ;;
     *)
