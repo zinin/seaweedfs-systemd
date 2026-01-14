@@ -316,36 +316,127 @@ create_dropin() {
     fi
 }
 
-# Parse XML and process dependents
+# Parse XML and process all dependencies
 process_config() {
     local config="$1"
     local dry_run="${2:-false}"
 
-    # Get all service IDs that have dependents
-    local service_ids
-    service_ids=$(xmlstarlet sel -N x="$NS" \
-        -t -m "//x:service[x:dependents]" -v "x:id" -n "$config" 2>/dev/null || true)
+    # Process dependents (external units depending on seaweedfs services)
+    echo ""
+    echo "=== Processing dependents ==="
 
-    if [[ -z "$service_ids" ]]; then
-        echo "No services with dependents found in config"
-        return
-    fi
+    local -A unit_deps=()
 
+    # Collect dependents: for each service with dependents, extract unit and type
     while IFS= read -r service_id; do
         [[ -z "$service_id" ]] && continue
-        echo ""
-        echo "Processing service: $service_id"
 
-        # Get units for this service
-        local units
-        units=$(xmlstarlet sel -N x="$NS" \
-            -t -m "//x:service[x:id='$service_id']/x:dependents/x:unit" -v "." -n "$config")
+        # Get units and their dependency types for this service
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            local unit dep_type
+            unit=$(echo "$line" | cut -d$'\t' -f1)
+            dep_type=$(echo "$line" | cut -d$'\t' -f2)
+            [[ -z "$dep_type" ]] && dep_type="requires"
 
-        while IFS= read -r unit; do
-            [[ -z "$unit" ]] && continue
-            create_dropin "$unit" "$service_id" "$dry_run"
-        done <<< "$units"
-    done <<< "$service_ids"
+            # Accumulate: unit -> "service_id:dep_type ..."
+            if [[ -n "${unit_deps[$unit]:-}" ]]; then
+                unit_deps[$unit]+=" ${service_id}:${dep_type}"
+            else
+                unit_deps[$unit]="${service_id}:${dep_type}"
+            fi
+        done < <(xmlstarlet sel -N x="$NS" \
+            -t -m "//x:service[x:id='$service_id']/x:dependents/x:unit" \
+            -v "." -o $'\t' -v "@dependency-type" -n "$config" 2>/dev/null || true)
+    done < <(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:service[x:dependents]" -v "x:id" -n "$config" 2>/dev/null || true)
+
+    # Create drop-in files for dependents
+    for unit in "${!unit_deps[@]}"; do
+        local deps_str="${unit_deps[$unit]}"
+        local -a deps_array=($deps_str)
+
+        # Ensure unit ends with .service
+        local unit_file="$unit"
+        [[ "$unit_file" != *.service ]] && unit_file="${unit}.service"
+
+        local dropin_dir="$DROPIN_DIR_BASE/${unit_file}.d"
+        local dropin_file="$dropin_dir/$DROPIN_FILENAME"
+
+        if [[ "$dry_run" == "true" ]]; then
+            echo "Would create: $dropin_file"
+            echo "--- Content ---"
+            generate_dependents_dropin "$CONFIG_PATH" "${deps_array[@]}"
+            echo "---------------"
+        else
+            echo "Creating: $dropin_file"
+            mkdir -p "$dropin_dir"
+            generate_dependents_dropin "$CONFIG_PATH" "${deps_array[@]}" > "$dropin_file"
+        fi
+    done
+
+    if [[ ${#unit_deps[@]} -eq 0 ]]; then
+        echo "No dependents found"
+    fi
+
+    # Process dependencies (seaweedfs services depending on others)
+    echo ""
+    echo "=== Processing dependencies ==="
+
+    local found_deps=0
+    while IFS= read -r service_id; do
+        [[ -z "$service_id" ]] && continue
+        found_deps=1
+
+        local -a deps_array=()
+
+        # Get service dependencies
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            local ref dep_type
+            ref=$(echo "$line" | cut -d$'\t' -f1)
+            dep_type=$(echo "$line" | cut -d$'\t' -f2)
+            [[ -z "$dep_type" ]] && dep_type="requires"
+            deps_array+=("seaweedfs@${ref}.service:${dep_type}")
+        done < <(xmlstarlet sel -N x="$NS" \
+            -t -m "//x:service[x:id='$service_id']/x:dependencies/x:service" \
+            -v "." -o $'\t' -v "@dependency-type" -n "$config" 2>/dev/null || true)
+
+        # Get unit dependencies
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            local unit dep_type
+            unit=$(echo "$line" | cut -d$'\t' -f1)
+            dep_type=$(echo "$line" | cut -d$'\t' -f2)
+            [[ -z "$dep_type" ]] && dep_type="requires"
+            deps_array+=("${unit}:${dep_type}")
+        done < <(xmlstarlet sel -N x="$NS" \
+            -t -m "//x:service[x:id='$service_id']/x:dependencies/x:unit" \
+            -v "." -o $'\t' -v "@dependency-type" -n "$config" 2>/dev/null || true)
+
+        if [[ ${#deps_array[@]} -eq 0 ]]; then
+            continue
+        fi
+
+        local dropin_dir="$DROPIN_DIR_BASE/seaweedfs@${service_id}.service.d"
+        local dropin_file="$dropin_dir/$DROPIN_FILENAME"
+
+        if [[ "$dry_run" == "true" ]]; then
+            echo "Would create: $dropin_file"
+            echo "--- Content ---"
+            generate_dependencies_dropin "$CONFIG_PATH" "${deps_array[@]}"
+            echo "---------------"
+        else
+            echo "Creating: $dropin_file"
+            mkdir -p "$dropin_dir"
+            generate_dependencies_dropin "$CONFIG_PATH" "${deps_array[@]}" > "$dropin_file"
+        fi
+    done < <(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:service[x:dependencies]" -v "x:id" -n "$config" 2>/dev/null || true)
+
+    if [[ $found_deps -eq 0 ]]; then
+        echo "No dependencies found"
+    fi
 }
 
 case "$COMMAND" in
