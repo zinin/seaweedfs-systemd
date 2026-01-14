@@ -61,6 +61,31 @@ validate_service_refs() {
     return $errors
 }
 
+# Validate external unit references (warning only)
+validate_external_units() {
+    local config="$1"
+    local warnings=0
+
+    # Get all external unit references
+    local units
+    units=$(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:dependencies/x:unit | //x:dependents/x:unit" -v "." -n "$config" 2>/dev/null | sort -u || true)
+
+    while IFS= read -r unit; do
+        [[ -z "$unit" ]] && continue
+        # Add .service suffix if not present and not a .target
+        local unit_name="$unit"
+        [[ "$unit_name" != *.service && "$unit_name" != *.target ]] && unit_name="${unit}.service"
+
+        if ! systemctl list-unit-files "$unit_name" &>/dev/null; then
+            echo "Warning: Unit not found: $unit_name (may be generated dynamically)"
+            warnings=$((warnings + 1))
+        fi
+    done <<< "$units"
+
+    return 0  # Warnings don't fail
+}
+
 if [[ $# -lt 1 ]]; then
     usage
 fi
