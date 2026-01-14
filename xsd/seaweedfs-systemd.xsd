@@ -84,6 +84,14 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:complexType name="UnitDependency">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="dependency-type" type="tns:DependencyTypeEnum" default="requires"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
     <xs:complexType name="DependentsType">
         <xs:sequence>
             <xs:element name="unit" type="xs:string" maxOccurs="unbounded"/>
