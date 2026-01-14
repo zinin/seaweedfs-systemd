@@ -100,6 +100,15 @@
         </xs:simpleContent>
     </xs:complexType>
 
+    <xs:complexType name="DependenciesType">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="service" type="tns:ServiceDependency"/>
+                <xs:element name="unit" type="tns:UnitDependency"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="DependentsType">
         <xs:sequence>
             <xs:element name="unit" type="xs:string" maxOccurs="unbounded"/>
