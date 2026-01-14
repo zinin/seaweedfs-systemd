@@ -31,6 +31,36 @@ check_deps() {
     fi
 }
 
+# Get all service IDs from config
+get_all_service_ids() {
+    local config="$1"
+    xmlstarlet sel -N x="$NS" \
+        -t -m "//x:service/x:id" -v "." -n "$config" 2>/dev/null | sort -u
+}
+
+# Validate that all service references exist
+validate_service_refs() {
+    local config="$1"
+    local valid_ids
+    valid_ids=$(get_all_service_ids "$config")
+    local errors=0
+
+    # Get all service references in dependencies
+    local refs
+    refs=$(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:dependencies/x:service" -v "." -n "$config" 2>/dev/null || true)
+
+    while IFS= read -r ref; do
+        [[ -z "$ref" ]] && continue
+        if ! echo "$valid_ids" | grep -qx "$ref"; then
+            echo "Error: Unknown service reference: $ref"
+            errors=$((errors + 1))
+        fi
+    done <<< "$refs"
+
+    return $errors
+}
+
 if [[ $# -lt 1 ]]; then
     usage
 fi
