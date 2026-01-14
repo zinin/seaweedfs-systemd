@@ -19,8 +19,8 @@ xmllint --noout --schema xsd/seaweedfs-systemd.xsd /etc/seaweedfs/services.xml
 
 | Path | Purpose |
 |------|---------|
-| `seaweedfs-service.sh` | Service startup script via XML |
-| `seaweedfs@.service` | Systemd unit template |
+| `dist/seaweedfs-service.sh` | Service startup script via XML |
+| `dist/seaweedfs@.service` | Systemd unit template |
 | `xsd/seaweedfs-systemd.xsd` | Configuration XSD schema |
 | `ansible/` | Deployment playbook |
 | `help.txt` | Weed commands documentation |
