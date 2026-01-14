@@ -231,3 +231,34 @@ If parameter description contains "deprecated":
 - New Args types: add at end of file, before `</xs:schema>`
 - New enum values: add at end of `ServiceTypeEnum`
 - New choice elements: add at end of `xs:choice`
+
+## Errors
+
+### ./weed not found
+
+```
+Error: ./weed not found in project root.
+Run /seaweedfs-update-help first to download SeaweedFS binary.
+```
+
+### ./weed help fails
+
+If `./weed help <command>` returns error:
+- Log the error
+- Skip this command
+- Continue with next command
+
+### Invalid XSD
+
+If XSD cannot be parsed:
+```
+Error: Failed to parse xsd/seaweedfs-systemd.xsd.
+Check XML syntax manually before running this skill.
+```
+
+### Validation
+
+After all updates, recommend running:
+```bash
+xmllint --noout xsd/seaweedfs-systemd.xsd
+```
