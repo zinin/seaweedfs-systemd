@@ -292,30 +292,6 @@ EOF
     echo "After=${after_list[*]}"
 }
 
-# Create drop-in file for a unit
-create_dropin() {
-    local unit="$1"
-    local service_id="$2"
-    local dry_run="${3:-false}"
-
-    # Ensure unit ends with .service
-    [[ "$unit" == *.service ]] || unit="${unit}.service"
-
-    local dropin_dir="$DROPIN_DIR_BASE/${unit}.d"
-    local dropin_file="$dropin_dir/$DROPIN_FILENAME"
-
-    if [[ "$dry_run" == "true" ]]; then
-        echo "Would create: $dropin_file"
-        echo "--- Content ---"
-        generate_dropin_content "$service_id"
-        echo "---------------"
-    else
-        echo "Creating: $dropin_file"
-        mkdir -p "$dropin_dir"
-        generate_dropin_content "$service_id" > "$dropin_file"
-    fi
-}
-
 # Parse XML and process all dependencies
 process_config() {
     local config="$1"
