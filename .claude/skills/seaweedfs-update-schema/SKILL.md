@@ -156,3 +156,57 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
    Параметр 'oldParam' отсутствует в новой версии.
    Удалить из схемы? (да/нет)
    ```
+
+### Step 6: Apply Changes to XSD
+
+**Добавление нового параметра:**
+
+Вставь в `xs:sequence` соответствующего типа Args в алфавитном порядке:
+
+```xml
+<xs:element name="newParam" type="xs:int" minOccurs="0"/>
+```
+
+- По умолчанию `minOccurs="0"` (опциональный)
+- Если параметр явно обязательный (нет default, критичный) → без `minOccurs`
+
+**Удаление параметра:**
+
+Удали строку `<xs:element name="paramName" .../>` из `xs:sequence`
+
+**Изменение типа:**
+
+Замени значение атрибута `type`:
+```xml
+<!-- Было: -->
+<xs:element name="param" type="xs:string" minOccurs="0"/>
+<!-- Стало: -->
+<xs:element name="param" type="xs:int" minOccurs="0"/>
+```
+
+**Создание нового типа Args:**
+
+1. Добавь в `ServiceTypeEnum` новое значение:
+```xml
+<xs:enumeration value="new.command"/>
+```
+
+2. Добавь в `xs:choice` внутри `ServiceType`:
+```xml
+<xs:element name="new-command-args" type="tns:NewCommandArgs"/>
+```
+
+3. Создай новый `xs:complexType`:
+```xml
+<xs:complexType name="NewCommandArgs">
+    <xs:sequence>
+        <xs:element name="param1" type="xs:string" minOccurs="0"/>
+        <xs:element name="param2" type="xs:int" minOccurs="0"/>
+    </xs:sequence>
+</xs:complexType>
+```
+
+**Форматирование:**
+- Отступы: 4 пробела
+- Порядок элементов внутри sequence: алфавитный
+- Порядок типов Args: сохранять существующий, новые в конец
