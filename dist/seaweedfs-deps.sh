@@ -153,6 +153,35 @@ detect_cycles() {
     return $has_cycle
 }
 
+# Run all validations
+run_validations() {
+    local config="$1"
+    local errors=0
+
+    echo "Validating configuration..."
+
+    # Validate service references
+    if ! validate_service_refs "$config"; then
+        errors=1
+    fi
+
+    # Validate external units (warnings only)
+    validate_external_units "$config"
+
+    # Detect cycles
+    if ! detect_cycles "$config"; then
+        errors=1
+    fi
+
+    if [[ $errors -ne 0 ]]; then
+        echo "Validation failed"
+        return 1
+    fi
+
+    echo "Validation passed"
+    return 0
+}
+
 if [[ $# -lt 1 ]]; then
     usage
 fi
