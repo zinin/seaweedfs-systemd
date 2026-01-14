@@ -78,6 +78,12 @@ build_args() {
     echo "$args"
 }
 
+# Get mount directory for mount service type
+get_mount_dir() {
+    xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" \
+        -t -v "//x:service[x:id='$SERVICE_ID']/x:mount-args/x:dir" "$CONFIG_PATH"
+}
+
 # Get run-dir, config-dir, and logs-dir if specified
 RUN_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
 CONFIG_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
