@@ -6,11 +6,11 @@
 #   service_id: ID of the service from XML config
 #   config_path: Optional path to XML config (default: /etc/seaweedfs/services.xml)
 
-# Default configuration path
-CONFIG_PATH=${2:-"/etc/seaweedfs/services.xml"}
-SCHEMA_PATH="/opt/seaweedfs/seaweedfs-systemd.xsd"
+# Default configuration path (can be overridden via environment variables)
+CONFIG_PATH="${2:-${SEAWEEDFS_CONFIG_PATH:-/etc/seaweedfs/services.xml}}"
+SCHEMA_PATH="${SEAWEEDFS_SCHEMA_PATH:-/opt/seaweedfs/seaweedfs-systemd.xsd}"
 SERVICE_ID=$1
-WEED_BINARY="/opt/seaweedfs/weed"
+WEED_BINARY="${SEAWEEDFS_WEED_BINARY:-/opt/seaweedfs/weed}"
 
 # Check if xmlstarlet is installed
 if ! command -v xmlstarlet &> /dev/null; then
@@ -42,6 +42,12 @@ if [ ! -f "$SCHEMA_PATH" ]; then
     exit 1
 fi
 
+# Check if weed binary exists and is executable
+if [ ! -x "$WEED_BINARY" ]; then
+    echo "Error: Weed binary not found or not executable at $WEED_BINARY"
+    exit 1
+fi
+
 # Validate XML against schema
 xmllint --noout --schema "$SCHEMA_PATH" "$CONFIG_PATH"
 if [ $? -ne 0 ]; then
@@ -63,11 +69,10 @@ RUN_GROUP=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v
 
 # Function to build command arguments
 build_args() {
-    local service_type=$1
-    local args_path=$2
+    local args_path=$1
     local args=""
 
-    # Extract arguments based on the service type
+    # Extract arguments based on the args element path
     args=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -m "//x:service[x:id='$SERVICE_ID']/x:$args_path/*" -v "concat('-', name(), '=', .)" -o " " "$CONFIG_PATH")
 
     echo "$args"
@@ -89,50 +94,68 @@ fi
 
 # Build service-specific arguments based on service type
 case $SERVICE_TYPE in
-    "server")
-        ARGS=$(build_args "$SERVICE_TYPE" "server-args")
-        ;;
-    "master")
-        ARGS=$(build_args "$SERVICE_TYPE" "master-args")
-        ;;
-    "volume")
-        ARGS=$(build_args "$SERVICE_TYPE" "volume-args")
-        ;;
-    "filer.sync")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-sync-args")
-        ;;
-    "mount")
-        ARGS=$(build_args "$SERVICE_TYPE" "mount-args")
+    "admin")
+        ARGS=$(build_args "admin-args")
         ;;
     "backup")
-        ARGS=$(build_args "$SERVICE_TYPE" "backup-args")
+        ARGS=$(build_args "backup-args")
+        ;;
+    "db")
+        ARGS=$(build_args "db-args")
         ;;
     "filer")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-args")
+        ARGS=$(build_args "filer-args")
         ;;
     "filer.backup")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-backup-args")
+        ARGS=$(build_args "filer-backup-args")
         ;;
     "filer.meta.backup")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-meta-backup-args")
+        ARGS=$(build_args "filer-meta-backup-args")
         ;;
     "filer.remote.gateway")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-remote-gateway-args")
+        ARGS=$(build_args "filer-remote-gateway-args")
         ;;
     "filer.remote.sync")
-        ARGS=$(build_args "$SERVICE_TYPE" "filer-remote-sync-args")
+        ARGS=$(build_args "filer-remote-sync-args")
         ;;
-    "iam")
-        ARGS=$(build_args "$SERVICE_TYPE" "iam-args")
+    "filer.sync")
+        ARGS=$(build_args "filer-sync-args")
+        ;;
+    "master")
+        ARGS=$(build_args "master-args")
+        ;;
+    "master.follower")
+        ARGS=$(build_args "master-follower-args")
+        ;;
+    "mini")
+        ARGS=$(build_args "mini-args")
+        ;;
+    "mount")
+        ARGS=$(build_args "mount-args")
         ;;
     "mq.broker")
-        ARGS=$(build_args "$SERVICE_TYPE" "mq-broker-args")
+        ARGS=$(build_args "mq-broker-args")
+        ;;
+    "mq.kafka.gateway")
+        ARGS=$(build_args "mq-kafka-gateway-args")
         ;;
     "s3")
-        ARGS=$(build_args "$SERVICE_TYPE" "s3-args")
+        ARGS=$(build_args "s3-args")
+        ;;
+    "server")
+        ARGS=$(build_args "server-args")
+        ;;
+    "sftp")
+        ARGS=$(build_args "sftp-args")
+        ;;
+    "volume")
+        ARGS=$(build_args "volume-args")
         ;;
     "webdav")
-        ARGS=$(build_args "$SERVICE_TYPE" "webdav-args")
+        ARGS=$(build_args "webdav-args")
+        ;;
+    "worker")
+        ARGS=$(build_args "worker-args")
         ;;
     *)
         echo "Error: Unknown service type '$SERVICE_TYPE'"
