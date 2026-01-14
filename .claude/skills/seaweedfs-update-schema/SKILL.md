@@ -7,46 +7,46 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 
 ## Overview
 
-Автоматически обновляет XSD-схему `xsd/seaweedfs-systemd.xsd` на основе актуальной документации из `help.txt`.
+Automatically updates the XSD schema `xsd/seaweedfs-systemd.xsd` based on current documentation from `help.txt`.
 
 ## When to Use
 
-- После обновления SeaweedFS и регенерации help.txt
-- Для синхронизации схемы с новой версией SeaweedFS
-- После выполнения `/seaweedfs-update-help`
+- After updating SeaweedFS and regenerating help.txt
+- To synchronize the schema with a new SeaweedFS version
+- After running `/seaweedfs-update-help`
 
 ## Quick Reference
 
 | File | Purpose |
 |------|---------|
-| `help.txt` | Источник актуальных параметров |
-| `xsd/seaweedfs-systemd.xsd` | Целевая схема для обновления |
+| `help.txt` | Source of current parameters |
+| `xsd/seaweedfs-systemd.xsd` | Target schema to update |
 
 ## Algorithm
 
 ### Step 1: Parse help.txt
 
-1. Читай файл `help.txt` в корне проекта
+1. Read the `help.txt` file from the project root
 
-2. Найди все блоки команд по паттерну:
+2. Find all command blocks by pattern:
    ```
    ============================================================
    Command: weed help <command_name>
    ============================================================
    ```
 
-3. Для каждого блока:
-   - Извлеки имя команды из `weed help <command_name>`
-   - Найди секцию `Default Parameters:`
-   - Парси параметры до следующего разделителя `====`
+3. For each block:
+   - Extract the command name from `weed help <command_name>`
+   - Find the `Default Parameters:` section
+   - Parse parameters until the next `====` delimiter
 
-4. Формат параметра в help.txt:
+4. Parameter format in help.txt:
    ```
      -paramName type
        	description text (default value)
    ```
 
-   Примеры:
+   Examples:
    ```
      -port int
        	server http listen port (default 9333)
@@ -58,17 +58,17 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
        	start time before now
    ```
 
-5. Извлеки для каждого параметра:
-   - Имя (без дефиса): `port`, `debug`, `garbageThreshold`
-   - Go-тип (если есть): `int`, `string`, `float`, `duration`, `uint`
-   - Default value (если есть): из `(default ...)` в описании
+5. Extract for each parameter:
+   - Name (without dash): `port`, `debug`, `garbageThreshold`
+   - Go type (if present): `int`, `string`, `float`, `duration`, `uint`
+   - Default value (if present): from `(default ...)` in description
 
 ### Step 2: Type Mapping
 
 **Go type → XSD type:**
 
-| Go type | XSD type | Пример |
-|---------|----------|--------|
+| Go type | XSD type | Example |
+|---------|----------|---------|
 | `int` | `xs:int` | `-port int` |
 | `int64` | `xs:long` | `-size int64` |
 | `uint` | `xs:unsignedInt` | `-volumeSizeLimitMB uint` |
@@ -79,23 +79,24 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 | `value` | `xs:string` | `-config value` |
 | (no type) | `xs:boolean` | `-debug` |
 
-**Эвристика при отсутствии типа:**
-- `(default true)` или `(default false)` → `xs:boolean`
-- `(default 123)` (число) → `xs:int`
-- `(default 0.5)` (дробное) → `xs:float`
-- `(default "text")` или любой текст → `xs:string`
-- Неясно → спроси пользователя
+**Heuristics when type is missing:**
+- `(default true)` or `(default false)` → `xs:boolean`
+- `(default 123)` (integer) → `xs:int`
+- `(default 0.5)` (decimal) → `xs:float`
+- `(default "text")` or any text → `xs:string`
+- Unclear → ask the user
 
 ### Step 3: Command Name → Args Type
 
-**Правило преобразования:**
-1. Убрать `weed help ` из имени команды
-2. Разделить по `.`
-3. Каждую часть с заглавной буквы
-4. Добавить `Args`
+**Conversion rules:**
+1. Remove `weed help ` from the command name
+2. Split by `.`
+3. Capitalize each part
+4. Append `Args`
 
-**Примеры:**
-| Команда | Args Type |
+**Examples:**
+
+| Command | Args Type |
 |---------|-----------|
 | `weed help server` | `ServerArgs` |
 | `weed help master` | `MasterArgs` |
@@ -105,98 +106,98 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 | `weed help mq.broker` | `MqBrokerArgs` |
 | `weed help s3` | `S3Args` |
 
-**Обратное преобразование (Args Type → команда):**
+**Reverse conversion (Args Type → command):**
 - `ServerArgs` → `server`
 - `FilerBackupArgs` → `filer.backup`
 - `MqBrokerArgs` → `mq.broker`
 
 ### Step 4: Compare with Current XSD
 
-1. Читай файл `xsd/seaweedfs-systemd.xsd`
+1. Read the file `xsd/seaweedfs-systemd.xsd`
 
-2. Для каждого `xs:complexType name="*Args"`:
-   - Извлеки имя типа (например, `ServerArgs`)
-   - Найди все `xs:element` внутри `xs:sequence`
-   - Для каждого элемента извлеки: `name`, `type`, `minOccurs`
+2. For each `xs:complexType name="*Args"`:
+   - Extract the type name (e.g., `ServerArgs`)
+   - Find all `xs:element` within `xs:sequence`
+   - For each element extract: `name`, `type`, `minOccurs`
 
-3. Сопоставь с данными из help.txt:
-   - Преобразуй имя типа в команду: `ServerArgs` → `server`
-   - Найди соответствующую команду в parsed данных
+3. Match against data from help.txt:
+   - Convert type name to command: `ServerArgs` → `server`
+   - Find the corresponding command in parsed data
 
-4. Категоризируй изменения:
+4. Categorize changes:
 
-   **Новые параметры** (есть в help.txt, нет в XSD):
-   - Добавить в схему
+   **New parameters** (in help.txt, not in XSD):
+   - Add to schema
 
-   **Удалённые параметры** (есть в XSD, нет в help.txt):
-   - Проверить на переименование (см. Step 5)
-   - Если не переименование → спросить подтверждение на удаление
+   **Removed parameters** (in XSD, not in help.txt):
+   - Check for rename (see Step 5)
+   - If not a rename → ask for confirmation before removing
 
-   **Изменённый тип** (параметр есть в обоих, тип отличается):
-   - Обновить тип автоматически
+   **Changed type** (parameter exists in both, type differs):
+   - Update type automatically
 
-   **Новые команды** (есть в help.txt, нет Args типа в XSD):
-   - Создать новый тип Args
+   **New commands** (in help.txt, no Args type in XSD):
+   - Create new Args type
 
 ### Step 5: Detect Renames (Levenshtein)
 
-Для каждого "удалённого" параметра:
+For each "removed" parameter:
 
-1. Вычисли схожесть с каждым "новым" параметром
-2. Используй Levenshtein distance или схожесть строк
-3. Если схожесть ≥ 70%:
+1. Calculate similarity with each "new" parameter
+2. Use Levenshtein distance or string similarity
+3. If similarity ≥ 70%:
    ```
-   Параметр 'server' удалён.
-   Похож на новый параметр 'master' (схожесть 75%).
-   Это переименование? (да/нет/удалить оба/оставить оба)
+   Parameter 'server' was removed.
+   Similar to new parameter 'master' (75% similarity).
+   Is this a rename? (yes/no/delete both/keep both)
    ```
 
-4. Если схожесть < 70%:
+4. If similarity < 70%:
    ```
-   Параметр 'oldParam' отсутствует в новой версии.
-   Удалить из схемы? (да/нет)
+   Parameter 'oldParam' is missing in the new version.
+   Remove from schema? (yes/no)
    ```
 
 ### Step 6: Apply Changes to XSD
 
-**Добавление нового параметра:**
+**Adding a new parameter:**
 
-Вставь в `xs:sequence` соответствующего типа Args в алфавитном порядке:
+Insert into `xs:sequence` of the corresponding Args type in alphabetical order:
 
 ```xml
 <xs:element name="newParam" type="xs:int" minOccurs="0"/>
 ```
 
-- По умолчанию `minOccurs="0"` (опциональный)
-- Если параметр явно обязательный (нет default, критичный) → без `minOccurs`
+- Default is `minOccurs="0"` (optional)
+- If parameter is explicitly required (no default, critical) → omit `minOccurs`
 
-**Удаление параметра:**
+**Removing a parameter:**
 
-Удали строку `<xs:element name="paramName" .../>` из `xs:sequence`
+Delete the line `<xs:element name="paramName" .../>` from `xs:sequence`
 
-**Изменение типа:**
+**Changing type:**
 
-Замени значение атрибута `type`:
+Replace the `type` attribute value:
 ```xml
-<!-- Было: -->
+<!-- Before: -->
 <xs:element name="param" type="xs:string" minOccurs="0"/>
-<!-- Стало: -->
+<!-- After: -->
 <xs:element name="param" type="xs:int" minOccurs="0"/>
 ```
 
-**Создание нового типа Args:**
+**Creating a new Args type:**
 
-1. Добавь в `ServiceTypeEnum` новое значение:
+1. Add new value to `ServiceTypeEnum`:
 ```xml
 <xs:enumeration value="new.command"/>
 ```
 
-2. Добавь в `xs:choice` внутри `ServiceType`:
+2. Add to `xs:choice` inside `ServiceType`:
 ```xml
 <xs:element name="new-command-args" type="tns:NewCommandArgs"/>
 ```
 
-3. Создай новый `xs:complexType`:
+3. Create new `xs:complexType`:
 ```xml
 <xs:complexType name="NewCommandArgs">
     <xs:sequence>
@@ -206,69 +207,69 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 </xs:complexType>
 ```
 
-**Форматирование:**
-- Отступы: 4 пробела
-- Порядок элементов внутри sequence: алфавитный
-- Порядок типов Args: сохранять существующий, новые в конец
+**Formatting:**
+- Indentation: 4 spaces
+- Element order within sequence: alphabetical
+- Args type order: preserve existing, add new ones at the end
 
 ## Edge Cases
 
-### Вложенные параметры (с точками в имени)
+### Nested parameters (with dots in name)
 
-Параметры типа `s3.port`, `master.volumeSizeLimitMB`:
-- Это НЕ разделитель команд
-- В XSD сохраняй как есть: `<xs:element name="s3.port" .../>`
-- Точка в имени команды (`filer.backup`) — это разделитель команд
-- Точка в имени параметра (`s3.port`) — часть имени параметра
+Parameters like `s3.port`, `master.volumeSizeLimitMB`:
+- This is NOT a command separator
+- Keep as-is in XSD: `<xs:element name="s3.port" .../>`
+- Dot in command name (`filer.backup`) — command separator
+- Dot in parameter name (`s3.port`) — part of the parameter name
 
-### Deprecated параметры
+### Deprecated parameters
 
-Если описание содержит "deprecated":
+If description contains "deprecated":
 ```
 -masters string
     comma-separated master servers (deprecated, use -master instead)
 ```
 
-Действие:
+Action:
 ```
-Параметр 'masters' помечен как deprecated.
-Рекомендация: удалить из схемы, использовать 'master'.
-Удалить? (да/нет)
-```
-
-### Команды без параметров
-
-Некоторые команды (например, `weed autocomplete`) имеют пустую секцию `Default Parameters:`.
-
-Действие при первом таком случае:
-```
-Команда 'autocomplete' не имеет параметров.
-Создать пустой тип AutocompleteArgs? (да/пропустить)
+Parameter 'masters' is marked as deprecated.
+Recommendation: remove from schema, use 'master' instead.
+Remove? (yes/no)
 ```
 
-### Определение обязательности
+### Commands without parameters
 
-Параметр обязателен если:
-- Нет `(default ...)` в описании
-- В описании есть слова "required", "must", "необходим"
-- Команда не работает без этого параметра (по контексту)
+Some commands (e.g., `weed autocomplete`) have an empty `Default Parameters:` section.
 
-Иначе — опционален (`minOccurs="0"`)
-
-При сомнении — спроси пользователя.
-
-### Ошибки
-
-**help.txt не найден:**
+Action on first occurrence:
 ```
-Ошибка: файл help.txt не найден в корне проекта.
-Сначала выполни /seaweedfs-update-help для генерации документации.
+Command 'autocomplete' has no parameters.
+Create empty AutocompleteArgs type? (yes/skip)
 ```
 
-**XSD невалиден:**
+### Determining if required
+
+A parameter is required if:
+- No `(default ...)` in description
+- Description contains words "required", "must", "necessary"
+- Command doesn't work without this parameter (contextual)
+
+Otherwise — optional (`minOccurs="0"`)
+
+When in doubt — ask the user.
+
+### Errors
+
+**help.txt not found:**
 ```
-Ошибка: не удалось распарсить xsd/seaweedfs-systemd.xsd.
-Проверь синтаксис XML вручную.
+Error: help.txt not found in project root.
+Run /seaweedfs-update-help first to generate documentation.
+```
+
+**Invalid XSD:**
+```
+Error: failed to parse xsd/seaweedfs-systemd.xsd.
+Check XML syntax manually.
 ```
 
 ## Usage
@@ -279,15 +280,15 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 
 ## Output
 
-После выполнения выведи отчёт:
+After execution, display a report:
 
 ```
 === SeaweedFS Schema Update Report ===
 
-Проанализировано команд: 25
-Типов Args в схеме: 14
+Commands analyzed: 25
+Args types in schema: 14
 
-ДОБАВЛЕНО параметров: 12
+ADDED parameters: 12
   ServerArgs:
     + adminPassword (xs:string)
     + adminUser (xs:string)
@@ -296,26 +297,26 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
     + sftp.port (xs:int)
   ...
 
-УДАЛЕНО параметров: 3
+REMOVED parameters: 3
   ServerArgs:
-    - oldParam (подтверждено пользователем)
+    - oldParam (confirmed by user)
   ...
 
-ИЗМЕНЕНО типов: 2
+CHANGED types: 2
   MasterArgs.volumeSizeLimitMB: xs:int → xs:unsignedInt
 
-НОВЫЕ типы Args: 2
-  + AdminArgs (15 параметров)
-  + MiniArgs (47 параметров)
+NEW Args types: 2
+  + AdminArgs (15 parameters)
+  + MiniArgs (47 parameters)
 
-Схема обновлена: xsd/seaweedfs-systemd.xsd
+Schema updated: xsd/seaweedfs-systemd.xsd
 ```
 
 ## Workflow Integration
 
-Типичный порядок использования:
+Typical usage order:
 
-1. `/seaweedfs-update-help` — скачать новую версию, сгенерировать help.txt
-2. `/seaweedfs-update-schema` — обновить XSD на основе help.txt
-3. Проверить изменения: `git diff xsd/seaweedfs-systemd.xsd`
-4. Commit изменений
+1. `/seaweedfs-update-help` — download new version, generate help.txt
+2. `/seaweedfs-update-schema` — update XSD based on help.txt
+3. Review changes: `git diff xsd/seaweedfs-systemd.xsd`
+4. Commit changes

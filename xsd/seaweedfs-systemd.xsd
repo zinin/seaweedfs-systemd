@@ -435,6 +435,7 @@
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.clientAliveCountMax" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.clientAliveInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.loginGraceTime" type="xs:duration" minOccurs="0"/>
