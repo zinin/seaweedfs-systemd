@@ -202,3 +202,32 @@ Update XSD schema for SeaweedFS command: {command}
    New type created: yes/no
    ```
 ```
+
+## Edge Cases
+
+### Commands Without Parameters
+
+Some commands have empty `Default Parameters:` section. Skip these — no point in empty Args type for systemd services.
+
+### Parameters with Dots in Name
+
+Parameters like `s3.port`, `master.volumeSizeLimitMB` — these are parameter names, NOT command separators.
+
+Keep as-is in XSD:
+```xml
+<xs:element name="s3.port" type="xs:int" minOccurs="0"/>
+```
+
+### Deprecated Parameters
+
+If parameter description contains "deprecated":
+- Remove from schema (along with other missing parameters)
+- Note in report
+
+### XSD Formatting
+
+- Indentation: 4 spaces
+- Elements within sequence: alphabetical order
+- New Args types: add at end of file, before `</xs:schema>`
+- New enum values: add at end of `ServiceTypeEnum`
+- New choice elements: add at end of `xs:choice`
