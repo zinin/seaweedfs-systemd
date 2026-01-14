@@ -76,6 +76,14 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="DependencyTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="requires"/>
+            <xs:enumeration value="binds-to"/>
+            <xs:enumeration value="wants"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="DependentsType">
         <xs:sequence>
             <xs:element name="unit" type="xs:string" maxOccurs="unbounded"/>
