@@ -218,17 +218,78 @@ clean_dropins() {
     fi
 }
 
-# Generate drop-in file content
-generate_dropin_content() {
-    local service_id="$1"
+# Generate drop-in file content for dependents (external units depending on seaweedfs)
+generate_dependents_dropin() {
+    local config_path="$1"
+    shift
+    # Remaining args are: "service_id:dep_type" pairs
+    local -a requires_list=()
+    local -a binds_list=()
+    local -a wants_list=()
+    local -a after_list=()
+
+    for item in "$@"; do
+        local service_id="${item%%:*}"
+        local dep_type="${item#*:}"
+        local unit="seaweedfs@${service_id}.service"
+
+        after_list+=("$unit")
+        case "$dep_type" in
+            requires) requires_list+=("$unit") ;;
+            binds-to) binds_list+=("$unit") ;;
+            wants) wants_list+=("$unit") ;;
+            *) requires_list+=("$unit") ;;  # default
+        esac
+    done
+
     cat <<EOF
 # Managed by seaweedfs-deps.sh - DO NOT EDIT
-# Source: seaweedfs@${service_id}.service
+# Source: $config_path
 
 [Unit]
-Requires=seaweedfs@${service_id}.service
-After=seaweedfs@${service_id}.service
 EOF
+    [[ ${#wants_list[@]} -gt 0 ]] && echo "Wants=${wants_list[*]}"
+    [[ ${#requires_list[@]} -gt 0 ]] && echo "Requires=${requires_list[*]}"
+    [[ ${#binds_list[@]} -gt 0 ]] && echo "BindsTo=${binds_list[*]}"
+    echo "After=${after_list[*]}"
+}
+
+# Generate drop-in file content for dependencies (seaweedfs depending on others)
+generate_dependencies_dropin() {
+    local config_path="$1"
+    shift
+    # Remaining args are: "unit:dep_type" pairs
+    local -a requires_list=()
+    local -a binds_list=()
+    local -a wants_list=()
+    local -a after_list=()
+
+    for item in "$@"; do
+        local unit="${item%%:*}"
+        local dep_type="${item#*:}"
+
+        # Add .service suffix if not present and not a .target
+        [[ "$unit" != *.service && "$unit" != *.target ]] && unit="${unit}.service"
+
+        after_list+=("$unit")
+        case "$dep_type" in
+            requires) requires_list+=("$unit") ;;
+            binds-to) binds_list+=("$unit") ;;
+            wants) wants_list+=("$unit") ;;
+            *) requires_list+=("$unit") ;;  # default
+        esac
+    done
+
+    cat <<EOF
+# Managed by seaweedfs-deps.sh - DO NOT EDIT
+# Source: $config_path
+
+[Unit]
+EOF
+    [[ ${#wants_list[@]} -gt 0 ]] && echo "Wants=${wants_list[*]}"
+    [[ ${#requires_list[@]} -gt 0 ]] && echo "Requires=${requires_list[*]}"
+    [[ ${#binds_list[@]} -gt 0 ]] && echo "BindsTo=${binds_list[*]}"
+    echo "After=${after_list[*]}"
 }
 
 # Create drop-in file for a unit
