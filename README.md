@@ -20,6 +20,7 @@ SeaweedFS is a distributed file system designed to store and serve billions of f
 - [XSD Validation](https://example.com): Validate XML configuration files against an XSD schema.
 - [Systemd Integration](https://example.com): Manage SeaweedFS services using systemd.
 - [Ansible Deployment](https://example.com): Automate the deployment of SeaweedFS services using Ansible.
+- [Dependencies Management](#dependencies-management): Manage systemd service dependencies.
 
 ## Usage
 
@@ -81,6 +82,7 @@ Example XML configuration:
     </server-args>
 </service>
 
+<!-- Mount depends on server (won't start until server is running) -->
 <service>
     <id>server1-mount</id>
     <type>mount</type>
@@ -89,6 +91,14 @@ Example XML configuration:
     <run-dir>/var/lib/seaweedfs/server1</run-dir>
     <config-dir>/var/lib/seaweedfs/server1</config-dir>
     <logs-dir>/var/lib/seaweedfs/server1/logs</logs-dir>
+    <!-- This mount requires server1-server to be running first -->
+    <dependencies>
+        <service>server1-server</service>
+    </dependencies>
+    <!-- External service myapp will be bound to this mount (stops if mount stops) -->
+    <dependents>
+        <unit dependency-type="binds-to">myapp</unit>
+    </dependents>
     <mount-args>
         <filer>localhost:10200</filer>
         <dir>/mnt/seaweedfs/server1</dir>
@@ -103,6 +113,10 @@ Example XML configuration:
     <run-dir>/var/lib/seaweedfs/server2</run-dir>
     <config-dir>var/lib/seawedfs/server2</config-dir>
     <logs-dir>/var/lib/seaweedfs/server2/logs</logs-dir>
+    <!-- Soft dependency: will try to start server2-server but won't fail if unavailable -->
+    <dependencies>
+        <service dependency-type="wants">server2-server</service>
+    </dependencies>
     <mount-args>
         <filer>localhost:10201</filer>
         <dir>/mnt/seaweedfs/server2</dir>
@@ -127,6 +141,39 @@ You can also manage services using systemd:
 sudo systemctl start seaweedfs@master1
 sudo systemctl enable seaweedfs@master1
 ```
+
+### Dependencies Management
+
+The `seaweedfs-deps.sh` script manages systemd drop-in files for service dependencies.
+
+#### Commands
+
+```sh
+# Create drop-in files from XML config
+./seaweedfs-deps.sh apply /etc/seaweedfs/services.xml
+
+# Show what would be done (dry-run)
+./seaweedfs-deps.sh check /etc/seaweedfs/services.xml
+
+# Remove all seaweedfs drop-in files
+./seaweedfs-deps.sh clean
+```
+
+#### XML Configuration
+
+Use `<dependencies>` to specify what a service needs:
+- `<service>` — reference to another SeaweedFS service by id
+- `<unit>` — external systemd unit
+
+Use `<dependents>` to specify external units that depend on this service:
+- `<unit>` — external systemd unit name
+
+The `dependency-type` attribute controls systemd dependency directive:
+- `requires` (default) — hard dependency
+- `binds-to` — tight coupling (stops when dependency stops)
+- `wants` — soft dependency
+
+See the [XML Configuration](#xml-configuration) example above for usage.
 
 ---
 
