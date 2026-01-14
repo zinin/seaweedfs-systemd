@@ -12,6 +12,14 @@
                 <xs:element name="service" type="tns:ServiceType" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:complexType>
+        <xs:key name="serviceIdKey">
+            <xs:selector xpath="tns:service"/>
+            <xs:field xpath="tns:id"/>
+        </xs:key>
+        <xs:keyref name="serviceDependencyRef" refer="tns:serviceIdKey">
+            <xs:selector xpath="tns:service/tns:dependencies/tns:service"/>
+            <xs:field xpath="."/>
+        </xs:keyref>
     </xs:element>
 
     <xs:complexType name="ServiceType">
