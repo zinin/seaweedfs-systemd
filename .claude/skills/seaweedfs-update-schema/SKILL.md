@@ -62,3 +62,50 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
    - Имя (без дефиса): `port`, `debug`, `garbageThreshold`
    - Go-тип (если есть): `int`, `string`, `float`, `duration`, `uint`
    - Default value (если есть): из `(default ...)` в описании
+
+### Step 2: Type Mapping
+
+**Go type → XSD type:**
+
+| Go type | XSD type | Пример |
+|---------|----------|--------|
+| `int` | `xs:int` | `-port int` |
+| `int64` | `xs:long` | `-size int64` |
+| `uint` | `xs:unsignedInt` | `-volumeSizeLimitMB uint` |
+| `float` | `xs:float` | `-garbageThreshold float` |
+| `float64` | `xs:double` | `-ratio float64` |
+| `string` | `xs:string` | `-dir string` |
+| `duration` | `xs:duration` | `-timeAgo duration` |
+| `value` | `xs:string` | `-config value` |
+| (no type) | `xs:boolean` | `-debug` |
+
+**Эвристика при отсутствии типа:**
+- `(default true)` или `(default false)` → `xs:boolean`
+- `(default 123)` (число) → `xs:int`
+- `(default 0.5)` (дробное) → `xs:float`
+- `(default "text")` или любой текст → `xs:string`
+- Неясно → спроси пользователя
+
+### Step 3: Command Name → Args Type
+
+**Правило преобразования:**
+1. Убрать `weed help ` из имени команды
+2. Разделить по `.`
+3. Каждую часть с заглавной буквы
+4. Добавить `Args`
+
+**Примеры:**
+| Команда | Args Type |
+|---------|-----------|
+| `weed help server` | `ServerArgs` |
+| `weed help master` | `MasterArgs` |
+| `weed help filer` | `FilerArgs` |
+| `weed help filer.backup` | `FilerBackupArgs` |
+| `weed help filer.meta.backup` | `FilerMetaBackupArgs` |
+| `weed help mq.broker` | `MqBrokerArgs` |
+| `weed help s3` | `S3Args` |
+
+**Обратное преобразование (Args Type → команда):**
+- `ServerArgs` → `server`
+- `FilerBackupArgs` → `filer.backup`
+- `MqBrokerArgs` → `mq.broker`
