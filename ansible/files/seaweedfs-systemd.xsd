@@ -76,7 +76,7 @@
     </xs:simpleType>
 
     <xs:complexType name="AdminArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="adminPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="adminUser" type="xs:string" minOccurs="0"/>
             <xs:element name="dataDir" type="xs:string" minOccurs="0"/>
@@ -86,11 +86,11 @@
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="readOnlyUser" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="BackupArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="collection" type="xs:string" minOccurs="0"/>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
@@ -98,11 +98,11 @@
             <xs:element name="server" type="xs:string" minOccurs="0"/>
             <xs:element name="ttl" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeId" type="xs:int" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="DbArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="auth" type="xs:string" minOccurs="0"/>
             <xs:element name="database" type="xs:string" minOccurs="0"/>
             <xs:element name="host" type="xs:string" minOccurs="0"/>
@@ -113,11 +113,11 @@
             <xs:element name="tls-cert" type="xs:string" minOccurs="0"/>
             <xs:element name="tls-key" type="xs:string" minOccurs="0"/>
             <xs:element name="users" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="collection" type="xs:string" minOccurs="0"/>
             <xs:element name="concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
@@ -202,11 +202,11 @@
             <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.replication" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerBackupArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
             <xs:element name="disableErrorRetry" type="xs:boolean" minOccurs="0"/>
             <xs:element name="doDeleteFiles" type="xs:boolean" minOccurs="0"/>
@@ -218,22 +218,22 @@
             <xs:element name="ignore404Error" type="xs:boolean" minOccurs="0"/>
             <xs:element name="retentionDays" type="xs:int" minOccurs="0"/>
             <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerMetaBackupArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="config" type="xs:string" minOccurs="0"/>
             <xs:element name="excludePrefixes" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerDir" type="xs:string" minOccurs="0"/>
             <xs:element name="includePrefixes" type="xs:string" minOccurs="0"/>
             <xs:element name="restart" type="xs:boolean" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerRemoteGatewayArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="createBucketAt" type="xs:string" minOccurs="0"/>
             <xs:element name="createBucketWithRandomSuffix" type="xs:boolean" minOccurs="0"/>
             <xs:element name="exclude" type="xs:string" minOccurs="0"/>
@@ -241,21 +241,21 @@
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
             <xs:element name="include" type="xs:string" minOccurs="0"/>
             <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerRemoteSyncArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
             <xs:element name="storageClass" type="xs:string" minOccurs="0"/>
             <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MqBrokerArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
@@ -267,11 +267,11 @@
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MqKafkaGatewayArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="default-partitions" type="xs:int" minOccurs="0"/>
             <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
@@ -280,11 +280,11 @@
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.pprof" type="xs:int" minOccurs="0"/>
             <xs:element name="schema-registry-url" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="S3Args">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
@@ -313,11 +313,11 @@
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="WebdavArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
             <xs:element name="cert.file" type="xs:string" minOccurs="0"/>
@@ -330,11 +330,11 @@
             <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="replication" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MountArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="allowOthers" type="xs:boolean" minOccurs="0"/>
             <xs:element name="asyncDio" type="xs:boolean" minOccurs="0"/>
             <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
@@ -377,11 +377,11 @@
             <xs:element name="umask" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
             <xs:element name="writebackCache" type="xs:boolean" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="ServerArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
@@ -517,11 +517,11 @@
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.replication" type="xs:string" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MasterArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
@@ -550,21 +550,21 @@
             <xs:element name="volumePreallocate" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MasterFollowerArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="VolumeArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="compactionMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
@@ -605,11 +605,11 @@
             <xs:element name="readBufferSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="readMode" type="xs:string" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="FilerSyncArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="a" type="xs:string"/>
             <xs:element name="a.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="a.debug" type="xs:boolean" minOccurs="0"/>
@@ -640,11 +640,11 @@
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="MiniArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="admin.dataDir" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.master" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.password" type="xs:string" minOccurs="0"/>
@@ -764,11 +764,11 @@
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.replication" type="xs:string" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="SftpArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="authMethods" type="xs:string" minOccurs="0"/>
             <xs:element name="bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="clientAliveCountMax" type="xs:int" minOccurs="0"/>
@@ -785,11 +785,11 @@
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="sshPrivateKey" type="xs:string" minOccurs="0"/>
             <xs:element name="userStoreFile" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 
     <xs:complexType name="WorkerArgs">
-        <xs:sequence>
+        <xs:all>
             <xs:element name="admin" type="xs:string" minOccurs="0"/>
             <xs:element name="capabilities" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
@@ -800,6 +800,6 @@
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="taskInterval" type="xs:duration" minOccurs="0"/>
             <xs:element name="workingDir" type="xs:string" minOccurs="0"/>
-        </xs:sequence>
+        </xs:all>
     </xs:complexType>
 </xs:schema>
