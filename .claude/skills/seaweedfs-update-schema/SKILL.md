@@ -270,3 +270,52 @@ description: Update XSD schema from SeaweedFS help documentation - adds new para
 Ошибка: не удалось распарсить xsd/seaweedfs-systemd.xsd.
 Проверь синтаксис XML вручную.
 ```
+
+## Usage
+
+```
+/seaweedfs-update-schema
+```
+
+## Output
+
+После выполнения выведи отчёт:
+
+```
+=== SeaweedFS Schema Update Report ===
+
+Проанализировано команд: 25
+Типов Args в схеме: 14
+
+ДОБАВЛЕНО параметров: 12
+  ServerArgs:
+    + adminPassword (xs:string)
+    + adminUser (xs:string)
+  FilerArgs:
+    + sftp (xs:boolean)
+    + sftp.port (xs:int)
+  ...
+
+УДАЛЕНО параметров: 3
+  ServerArgs:
+    - oldParam (подтверждено пользователем)
+  ...
+
+ИЗМЕНЕНО типов: 2
+  MasterArgs.volumeSizeLimitMB: xs:int → xs:unsignedInt
+
+НОВЫЕ типы Args: 2
+  + AdminArgs (15 параметров)
+  + MiniArgs (47 параметров)
+
+Схема обновлена: xsd/seaweedfs-systemd.xsd
+```
+
+## Workflow Integration
+
+Типичный порядок использования:
+
+1. `/seaweedfs-update-help` — скачать новую версию, сгенерировать help.txt
+2. `/seaweedfs-update-schema` — обновить XSD на основе help.txt
+3. Проверить изменения: `git diff xsd/seaweedfs-systemd.xsd`
+4. Commit изменений
