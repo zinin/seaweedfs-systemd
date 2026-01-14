@@ -11,13 +11,14 @@ set -euo pipefail
 DROPIN_FILENAME="seaweedfs.conf"
 DROPIN_DIR_BASE="/etc/systemd/system"
 NS="http://zinin.ru/xml/ns/seaweedfs-systemd"
+DEFAULT_CONFIG="/etc/seaweedfs/services.xml"
 
 usage() {
     echo "Usage: $0 <command> [config_path]"
     echo ""
     echo "Commands:"
-    echo "  apply <config.xml>  - Create systemd drop-in files from XML config"
-    echo "  check <config.xml>  - Show what would be done (dry-run)"
+    echo "  apply [config.xml]  - Create systemd drop-in files (default: $DEFAULT_CONFIG)"
+    echo "  check [config.xml]  - Show what would be done (dry-run)"
     echo "  clean               - Remove all seaweedfs drop-in files"
     exit 1
 }
@@ -35,7 +36,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 COMMAND="$1"
-CONFIG_PATH="${2:-}"
+CONFIG_PATH="${2:-$DEFAULT_CONFIG}"
 
 check_deps
 
@@ -143,10 +144,6 @@ case "$COMMAND" in
         echo "Done"
         ;;
     apply)
-        if [[ -z "$CONFIG_PATH" ]]; then
-            echo "Error: config path required for $COMMAND"
-            usage
-        fi
         if [[ ! -f "$CONFIG_PATH" ]]; then
             echo "Error: Config file not found: $CONFIG_PATH"
             exit 1
@@ -160,10 +157,6 @@ case "$COMMAND" in
         echo "Done"
         ;;
     check)
-        if [[ -z "$CONFIG_PATH" ]]; then
-            echo "Error: config path required for $COMMAND"
-            usage
-        fi
         if [[ ! -f "$CONFIG_PATH" ]]; then
             echo "Error: Config file not found: $CONFIG_PATH"
             exit 1
