@@ -126,6 +126,24 @@ wait_for_ready() {
     fi
 }
 
+# Run weed binary with proper signal handling
+run_weed() {
+    local weed_cmd=$1
+
+    # Start weed in background
+    eval "$weed_cmd" &
+    WEED_PID=$!
+
+    # Setup signal handler for graceful shutdown
+    trap 'echo "Received signal, stopping weed..."; kill $WEED_PID 2>/dev/null; wait $WEED_PID; exit $?' SIGTERM SIGINT
+
+    # Wait for ready and notify systemd
+    wait_for_ready "$WEED_PID" "$SERVICE_TYPE"
+
+    # Wait for weed to exit
+    wait $WEED_PID
+}
+
 # Get run-dir, config-dir, and logs-dir if specified
 RUN_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
 CONFIG_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
