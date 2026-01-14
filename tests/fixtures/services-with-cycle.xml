@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>service-a</id>
+        <type>filer</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs/a</run-dir>
+        <dependencies>
+            <service>service-b</service>
+        </dependencies>
+        <filer-args>
+            <port>8888</port>
+        </filer-args>
+    </service>
+    <service>
+        <id>service-b</id>
+        <type>filer</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs/b</run-dir>
+        <dependencies>
+            <service>service-a</service>
+        </dependencies>
+        <filer-args>
+            <port>8889</port>
+        </filer-args>
+    </service>
+</services>
