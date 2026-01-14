@@ -109,3 +109,26 @@ Schema updated: xsd/seaweedfs-systemd.xsd
 | `server` | `server-args` |
 | `filer.backup` | `filer-backup-args` |
 | `mq.broker` | `mq-broker-args` |
+
+## Type Mapping
+
+### Go Type → XSD Type
+
+| Go type | XSD type | Example |
+|---------|----------|---------|
+| `int` | `xs:int` | `-port int` |
+| `int64` | `xs:long` | `-size int64` |
+| `uint` | `xs:unsignedInt` | `-volumeSizeLimitMB uint` |
+| `float` | `xs:float` | `-garbageThreshold float` |
+| `float64` | `xs:double` | `-ratio float64` |
+| `string` | `xs:string` | `-dir string` |
+| `duration` | `xs:duration` | `-timeAgo duration` |
+| `value` | `xs:string` | `-config value` |
+| (no type) | `xs:boolean` | `-debug` |
+
+### Heuristics When Type Missing
+
+- `(default true)` or `(default false)` → `xs:boolean`
+- `(default 123)` integer → `xs:int`
+- `(default 0.5)` decimal → `xs:float`
+- `(default "text")` → `xs:string`
