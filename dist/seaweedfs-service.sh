@@ -229,24 +229,22 @@ case $SERVICE_TYPE in
         ;;
 esac
 
-# Show the command that will be executed
-if [ -n "$RUN_DIR" ]; then
-    echo "Executing: cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
-else
-    echo "Executing: $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
-fi
-
-# Execute the command with run-dir if specified
+# Build the full command
 if [ -n "$RUN_USER" ] && [ -n "$RUN_GROUP" ]; then
     if [ -n "$RUN_DIR" ]; then
-        exec sudo -u "$RUN_USER" -g "$RUN_GROUP" bash -c "cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
+        WEED_CMD="sudo -u '$RUN_USER' -g '$RUN_GROUP' bash -c \"cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS\""
     else
-        exec sudo -u "$RUN_USER" -g "$RUN_GROUP" $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS
+        WEED_CMD="sudo -u '$RUN_USER' -g '$RUN_GROUP' $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
     fi
 else
     if [ -n "$RUN_DIR" ]; then
-        exec bash -c "cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
+        WEED_CMD="bash -c \"cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS\""
     else
-        exec $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS
+        WEED_CMD="$WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
     fi
 fi
+
+echo "Executing: $WEED_CMD"
+
+# Run weed with notify support
+run_weed "$WEED_CMD"
