@@ -84,6 +84,48 @@ get_mount_dir() {
         -t -v "//x:service[x:id='$SERVICE_ID']/x:mount-args/x:dir" "$CONFIG_PATH"
 }
 
+# Wait for service to be ready and send systemd notification
+wait_for_ready() {
+    local pid=$1
+    local service_type=$2
+
+    # Check that process started successfully
+    sleep 0.5
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "Error: weed process died immediately"
+        exit 1
+    fi
+
+    if [[ "$service_type" == "mount" ]]; then
+        local mount_dir
+        mount_dir=$(get_mount_dir)
+
+        if [[ -z "$mount_dir" ]]; then
+            echo "Error: mount dir not found in config"
+            kill "$pid" 2>/dev/null
+            exit 1
+        fi
+
+        echo "Waiting for mount point: $mount_dir"
+        for i in {1..30}; do
+            if mountpoint -q "$mount_dir"; then
+                echo "Mount point ready after ${i}s"
+                systemd-notify --ready
+                return 0
+            fi
+            sleep 1
+        done
+
+        echo "Error: mount point $mount_dir not ready after 30s"
+        kill "$pid" 2>/dev/null
+        exit 1
+    else
+        # For other service types, wait 3 seconds
+        sleep 3
+        systemd-notify --ready
+    fi
+}
+
 # Get run-dir, config-dir, and logs-dir if specified
 RUN_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
 CONFIG_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
