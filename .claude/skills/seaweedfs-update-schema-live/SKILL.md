@@ -81,3 +81,31 @@ Parameters changed: W
 
 Schema updated: xsd/seaweedfs-systemd.xsd
 ```
+
+## Command to Args Type Conversion
+
+### Command Name → Args Type
+
+1. Split command by `.`
+2. Capitalize each part
+3. Append `Args`
+
+| Command | Args Type |
+|---------|-----------|
+| `server` | `ServerArgs` |
+| `master` | `MasterArgs` |
+| `filer` | `FilerArgs` |
+| `filer.backup` | `FilerBackupArgs` |
+| `filer.meta.backup` | `FilerMetaBackupArgs` |
+| `mq.broker` | `MqBrokerArgs` |
+
+### Command Name → XML Element Name
+
+1. Replace `.` with `-`
+2. Append `-args`
+
+| Command | Element Name |
+|---------|--------------|
+| `server` | `server-args` |
+| `filer.backup` | `filer-backup-args` |
+| `mq.broker` | `mq-broker-args` |
