@@ -10,7 +10,7 @@
         <run-dir>/var/lib/seaweedfs/test</run-dir>
         <dependents>
             <unit>nginx</unit>
-            <unit>dovecot</unit>
+            <unit dependency-type="binds-to">dovecot</unit>
         </dependents>
         <mount-args>
             <filer>localhost:8888</filer>
