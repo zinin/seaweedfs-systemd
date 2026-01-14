@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>test-server</id>
+        <type>server</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs/test</run-dir>
+        <dependents>
+            <unit>nginx</unit>
+            <unit dependency-type="binds-to">dovecot</unit>
+        </dependents>
+        <server-args>
+            <dir>/data</dir>
+        </server-args>
+    </service>
+    <service>
+        <id>test-mount</id>
+        <type>mount</type>
+        <run-user>root</run-user>
+        <run-group>root</run-group>
+        <run-dir>/var/lib/seaweedfs/mount</run-dir>
+        <dependencies>
+            <service dependency-type="binds-to">test-server</service>
+            <unit>network-online.target</unit>
+        </dependencies>
+        <dependents>
+            <unit>nginx</unit>
+        </dependents>
+        <mount-args>
+            <filer>localhost:8888</filer>
+            <dir>/mnt/test</dir>
+        </mount-args>
+    </service>
+</services>
