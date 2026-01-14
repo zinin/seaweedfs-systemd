@@ -86,6 +86,73 @@ validate_external_units() {
     return 0  # Warnings don't fail
 }
 
+# Detect cycles in service dependencies using DFS
+detect_cycles() {
+    local config="$1"
+    local -A visiting=()
+    local -A visited=()
+    local -a path=()
+    local has_cycle=0
+
+    # Get all service IDs
+    local service_ids
+    service_ids=$(get_all_service_ids "$config")
+
+    # DFS function
+    dfs() {
+        local node="$1"
+
+        if [[ -n "${visiting[$node]:-}" ]]; then
+            # Found cycle - reconstruct path
+            local cycle_start=0
+            local cycle_path=""
+            for p in "${path[@]}"; do
+                if [[ "$p" == "$node" ]]; then
+                    cycle_start=1
+                fi
+                if [[ $cycle_start -eq 1 ]]; then
+                    [[ -n "$cycle_path" ]] && cycle_path+=" → "
+                    cycle_path+="$p"
+                fi
+            done
+            cycle_path+=" → $node"
+            echo "Error: Cycle detected: $cycle_path"
+            has_cycle=1
+            return 1
+        fi
+
+        if [[ -n "${visited[$node]:-}" ]]; then
+            return 0
+        fi
+
+        visiting[$node]=1
+        path+=("$node")
+
+        # Get dependencies of this service
+        local deps
+        deps=$(xmlstarlet sel -N x="$NS" \
+            -t -m "//x:service[x:id='$node']/x:dependencies/x:service" -v "." -n "$config" 2>/dev/null || true)
+
+        while IFS= read -r dep; do
+            [[ -z "$dep" ]] && continue
+            dfs "$dep" || true
+        done <<< "$deps"
+
+        unset 'path[-1]'
+        unset "visiting[$node]"
+        visited[$node]=1
+        return 0
+    }
+
+    # Run DFS from each node
+    while IFS= read -r service_id; do
+        [[ -z "$service_id" ]] && continue
+        dfs "$service_id" || true
+    done <<< "$service_ids"
+
+    return $has_cycle
+}
+
 if [[ $# -lt 1 ]]; then
     usage
 fi
