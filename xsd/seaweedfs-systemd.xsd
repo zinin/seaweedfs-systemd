@@ -23,6 +23,7 @@
             <xs:element name="run-dir" type="xs:string"/>
             <xs:element name="config-dir" type="xs:string" minOccurs="0"/>
             <xs:element name="logs-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="dependencies" type="tns:DependenciesType" minOccurs="0"/>
             <xs:element name="dependents" type="tns:DependentsType" minOccurs="0"/>
             <xs:choice>
                 <xs:element name="admin-args" type="tns:AdminArgs"/>
