@@ -26,6 +26,7 @@
             <xs:choice>
                 <xs:element name="admin-args" type="tns:AdminArgs"/>
                 <xs:element name="backup-args" type="tns:BackupArgs"/>
+                <xs:element name="db-args" type="tns:DbArgs"/>
                 <xs:element name="filer-args" type="tns:FilerArgs"/>
                 <xs:element name="filer-backup-args" type="tns:FilerBackupArgs"/>
                 <xs:element name="filer-meta-backup-args" type="tns:FilerMetaBackupArgs"/>
@@ -33,9 +34,11 @@
                 <xs:element name="filer-remote-sync-args" type="tns:FilerRemoteSyncArgs"/>
                 <xs:element name="filer-sync-args" type="tns:FilerSyncArgs"/>
                 <xs:element name="master-args" type="tns:MasterArgs"/>
+                <xs:element name="master-follower-args" type="tns:MasterFollowerArgs"/>
                 <xs:element name="mini-args" type="tns:MiniArgs"/>
                 <xs:element name="mount-args" type="tns:MountArgs"/>
                 <xs:element name="mq-broker-args" type="tns:MqBrokerArgs"/>
+                <xs:element name="mq-kafka-gateway-args" type="tns:MqKafkaGatewayArgs"/>
                 <xs:element name="s3-args" type="tns:S3Args"/>
                 <xs:element name="server-args" type="tns:ServerArgs"/>
                 <xs:element name="sftp-args" type="tns:SftpArgs"/>
@@ -50,6 +53,7 @@
         <xs:restriction base="xs:string">
             <xs:enumeration value="admin"/>
             <xs:enumeration value="backup"/>
+            <xs:enumeration value="db"/>
             <xs:enumeration value="filer"/>
             <xs:enumeration value="filer.backup"/>
             <xs:enumeration value="filer.meta.backup"/>
@@ -57,9 +61,11 @@
             <xs:enumeration value="filer.remote.sync"/>
             <xs:enumeration value="filer.sync"/>
             <xs:enumeration value="master"/>
+            <xs:enumeration value="master.follower"/>
             <xs:enumeration value="mini"/>
             <xs:enumeration value="mount"/>
             <xs:enumeration value="mq.broker"/>
+            <xs:enumeration value="mq.kafka.gateway"/>
             <xs:enumeration value="s3"/>
             <xs:enumeration value="server"/>
             <xs:enumeration value="sftp"/>
@@ -75,6 +81,7 @@
             <xs:element name="adminUser" type="xs:string" minOccurs="0"/>
             <xs:element name="dataDir" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="masters" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnlyPassword" type="xs:string" minOccurs="0"/>
@@ -88,8 +95,24 @@
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="replication" type="xs:string" minOccurs="0"/>
+            <xs:element name="server" type="xs:string" minOccurs="0"/>
             <xs:element name="ttl" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeId" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DbArgs">
+        <xs:sequence>
+            <xs:element name="auth" type="xs:string" minOccurs="0"/>
+            <xs:element name="database" type="xs:string" minOccurs="0"/>
+            <xs:element name="host" type="xs:string" minOccurs="0"/>
+            <xs:element name="idle-timeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="max-connections" type="xs:int" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="tls-cert" type="xs:string" minOccurs="0"/>
+            <xs:element name="tls-key" type="xs:string" minOccurs="0"/>
+            <xs:element name="users" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -244,6 +267,19 @@
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MqKafkaGatewayArgs">
+        <xs:sequence>
+            <xs:element name="default-partitions" type="xs:int" minOccurs="0"/>
+            <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.pprof" type="xs:int" minOccurs="0"/>
+            <xs:element name="schema-registry-url" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -418,6 +454,7 @@
             <xs:element name="s3.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.config" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.domainName" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
@@ -435,7 +472,6 @@
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.clientAliveCountMax" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.clientAliveInterval" type="xs:duration" minOccurs="0"/>
-            <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.loginGraceTime" type="xs:duration" minOccurs="0"/>
@@ -517,6 +553,16 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="MasterFollowerArgs">
+        <xs:sequence>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="master" type="xs:string" minOccurs="0"/>
+            <xs:element name="masters" type="xs:string" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="VolumeArgs">
         <xs:sequence>
             <xs:element name="compactionMBps" type="xs:int" minOccurs="0"/>
@@ -548,6 +594,7 @@
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="minFreeSpace" type="xs:string" minOccurs="0"/>
             <xs:element name="minFreeSpacePercent" type="xs:string" minOccurs="0"/>
+            <xs:element name="mserver" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="port.public" type="xs:int" minOccurs="0"/>
