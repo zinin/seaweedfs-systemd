@@ -132,3 +132,73 @@ Schema updated: xsd/seaweedfs-systemd.xsd
 - `(default 123)` integer → `xs:int`
 - `(default 0.5)` decimal → `xs:float`
 - `(default "text")` → `xs:string`
+
+## Subagent Prompt Template
+
+Use this prompt when spawning subagent for each command:
+
+```
+Update XSD schema for SeaweedFS command: {command}
+
+## Your Task
+
+1. Run: `./weed help {command}`
+
+2. Parse parameters from output. Format:
+   ```
+   -paramName type
+       description (default value)
+   ```
+   - Parameter without type = boolean
+
+3. Target Args type: `{ArgsType}`
+
+4. Read `xsd/seaweedfs-systemd.xsd`
+
+5. Find `<xs:complexType name="{ArgsType}">`
+
+6. **If type exists:** Compare parameters:
+   - New parameter → add `<xs:element name="paramName" type="xs:type" minOccurs="0"/>` in alphabetical order
+   - Missing parameter → remove from schema
+   - Different type → update `type` attribute
+
+7. **If type does NOT exist:** Create new:
+
+   a) Add to `ServiceTypeEnum`:
+   ```xml
+   <xs:enumeration value="{command}"/>
+   ```
+
+   b) Add to `xs:choice` in `ServiceType`:
+   ```xml
+   <xs:element name="{element-name}" type="tns:{ArgsType}"/>
+   ```
+
+   c) Create new `xs:complexType` before `</xs:schema>`:
+   ```xml
+   <xs:complexType name="{ArgsType}">
+       <xs:sequence>
+           <xs:element name="param1" type="xs:string" minOccurs="0"/>
+           <!-- ... all parameters alphabetically -->
+       </xs:sequence>
+   </xs:complexType>
+   ```
+
+8. Type mapping:
+   - int → xs:int
+   - int64 → xs:long
+   - uint → xs:unsignedInt
+   - float → xs:float
+   - string → xs:string
+   - duration → xs:duration
+   - no type → xs:boolean
+
+9. Return brief report:
+   ```
+   Command: {command}
+   Added: param1, param2
+   Removed: oldParam
+   Changed: param3 (xs:string → xs:int)
+   New type created: yes/no
+   ```
+```
