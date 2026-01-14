@@ -262,3 +262,28 @@ After all updates, recommend running:
 ```bash
 xmllint --noout xsd/seaweedfs-systemd.xsd
 ```
+
+## Usage
+
+```
+/seaweedfs-update-schema-live
+```
+
+## Workflow Integration
+
+Typical usage order:
+
+1. `/seaweedfs-update-help` — download new version, generate help.txt
+2. `/seaweedfs-update-schema-live` — update XSD via direct ./weed calls
+3. Review changes: `git diff xsd/seaweedfs-systemd.xsd`
+4. Commit changes
+
+## Comparison with seaweedfs-update-schema
+
+| Aspect | seaweedfs-update-schema | seaweedfs-update-schema-live |
+|--------|-------------------------|------------------------------|
+| Source | Parses help.txt file | Calls ./weed directly |
+| Processing | Single agent, all commands | Subagent per command |
+| Context | Shared (may overflow) | Isolated (clean per command) |
+| Speed | Faster | Slower (sequential subagents) |
+| Reliability | Good | Better for large updates |
