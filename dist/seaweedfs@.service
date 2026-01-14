@@ -4,12 +4,14 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=all
 User=root
 Group=root
 ExecStart=/opt/seaweedfs/seaweedfs-service.sh %i
 Restart=always
 RestartSec=5s
+TimeoutStartSec=60
 
 [Install]
 WantedBy=multi-user.target

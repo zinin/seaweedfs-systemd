@@ -12,6 +12,14 @@
                 <xs:element name="service" type="tns:ServiceType" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:complexType>
+        <xs:key name="serviceIdKey">
+            <xs:selector xpath="tns:service"/>
+            <xs:field xpath="tns:id"/>
+        </xs:key>
+        <xs:keyref name="serviceDependencyRef" refer="tns:serviceIdKey">
+            <xs:selector xpath="tns:service/tns:dependencies/tns:service"/>
+            <xs:field xpath="."/>
+        </xs:keyref>
     </xs:element>
 
     <xs:complexType name="ServiceType">
@@ -23,6 +31,8 @@
             <xs:element name="run-dir" type="xs:string"/>
             <xs:element name="config-dir" type="xs:string" minOccurs="0"/>
             <xs:element name="logs-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="dependencies" type="tns:DependenciesType" minOccurs="0"/>
+            <xs:element name="dependents" type="tns:DependentsType" minOccurs="0"/>
             <xs:choice>
                 <xs:element name="admin-args" type="tns:AdminArgs"/>
                 <xs:element name="backup-args" type="tns:BackupArgs"/>
@@ -74,6 +84,45 @@
             <xs:enumeration value="worker"/>
         </xs:restriction>
     </xs:simpleType>
+
+    <xs:simpleType name="DependencyTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="requires"/>
+            <xs:enumeration value="binds-to"/>
+            <xs:enumeration value="wants"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="UnitDependency">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="dependency-type" type="tns:DependencyTypeEnum" default="requires"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceDependency">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="dependency-type" type="tns:DependencyTypeEnum" default="requires"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="DependenciesType">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="service" type="tns:ServiceDependency"/>
+                <xs:element name="unit" type="tns:UnitDependency"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DependentsType">
+        <xs:sequence>
+            <xs:element name="unit" type="tns:UnitDependency" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
 
     <xs:complexType name="AdminArgs">
         <xs:all>
