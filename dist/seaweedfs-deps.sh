@@ -9,7 +9,7 @@
 set -euo pipefail
 
 DROPIN_FILENAME="seaweedfs.conf"
-DROPIN_DIR_BASE="/etc/systemd/system"
+DROPIN_DIR_BASE="${DROPIN_DIR_BASE:-/etc/systemd/system}"
 NS="http://zinin.ru/xml/ns/seaweedfs-systemd"
 DEFAULT_CONFIG="/etc/seaweedfs/services.xml"
 
@@ -52,13 +52,13 @@ validate_service_refs() {
 
     while IFS= read -r ref; do
         [[ -z "$ref" ]] && continue
-        if ! echo "$valid_ids" | grep -qx "$ref"; then
+        if ! echo "$valid_ids" | grep -qxF "$ref"; then
             echo "Error: Unknown service reference: $ref"
             errors=$((errors + 1))
         fi
     done <<< "$refs"
 
-    return $errors
+    return $((errors > 0 ? 1 : 0))
 }
 
 # Validate external unit references (warning only)
@@ -181,15 +181,6 @@ run_validations() {
     echo "Validation passed"
     return 0
 }
-
-if [[ $# -lt 1 ]]; then
-    usage
-fi
-
-COMMAND="$1"
-CONFIG_PATH="${2:-$DEFAULT_CONFIG}"
-
-check_deps
 
 # Remove all seaweedfs drop-in files
 clean_dropins() {
@@ -415,52 +406,67 @@ process_config() {
     fi
 }
 
-case "$COMMAND" in
-    clean)
-        clean_dropins false
-        echo "Running: systemctl daemon-reload"
-        systemctl daemon-reload
-        echo "Done"
-        ;;
-    apply)
-        if [[ ! -f "$CONFIG_PATH" ]]; then
-            echo "Error: Config file not found: $CONFIG_PATH"
-            exit 1
-        fi
-        echo "Applying dependencies from: $CONFIG_PATH"
-
-        if ! run_validations "$CONFIG_PATH"; then
-            exit 1
-        fi
-
-        clean_dropins false
-        process_config "$CONFIG_PATH" false
-        echo ""
-        echo "Running: systemctl daemon-reload"
-        systemctl daemon-reload
-        echo "Done"
-        ;;
-    check)
-        if [[ ! -f "$CONFIG_PATH" ]]; then
-            echo "Error: Config file not found: $CONFIG_PATH"
-            exit 1
-        fi
-        echo "Checking dependencies from: $CONFIG_PATH (dry-run)"
-        echo ""
-
-        if ! run_validations "$CONFIG_PATH"; then
-            echo ""
-            echo "Fix validation errors before applying"
-            exit 1
-        fi
-
-        echo ""
-        echo "=== Files to remove ==="
-        clean_dropins true
-        process_config "$CONFIG_PATH" true
-        ;;
-    *)
-        echo "Error: Unknown command '$COMMAND'"
+main() {
+    if [[ $# -lt 1 ]]; then
         usage
-        ;;
-esac
+    fi
+
+    COMMAND="$1"
+    CONFIG_PATH="${2:-$DEFAULT_CONFIG}"
+
+    check_deps
+
+    case "$COMMAND" in
+        clean)
+            clean_dropins false
+            echo "Running: systemctl daemon-reload"
+            systemctl daemon-reload
+            echo "Done"
+            ;;
+        apply)
+            if [[ ! -f "$CONFIG_PATH" ]]; then
+                echo "Error: Config file not found: $CONFIG_PATH"
+                exit 1
+            fi
+            echo "Applying dependencies from: $CONFIG_PATH"
+
+            if ! run_validations "$CONFIG_PATH"; then
+                exit 1
+            fi
+
+            clean_dropins false
+            process_config "$CONFIG_PATH" false
+            echo ""
+            echo "Running: systemctl daemon-reload"
+            systemctl daemon-reload
+            echo "Done"
+            ;;
+        check)
+            if [[ ! -f "$CONFIG_PATH" ]]; then
+                echo "Error: Config file not found: $CONFIG_PATH"
+                exit 1
+            fi
+            echo "Checking dependencies from: $CONFIG_PATH (dry-run)"
+            echo ""
+
+            if ! run_validations "$CONFIG_PATH"; then
+                echo ""
+                echo "Fix validation errors before applying"
+                exit 1
+            fi
+
+            echo ""
+            echo "=== Files to remove ==="
+            clean_dropins true
+            process_config "$CONFIG_PATH" true
+            ;;
+        *)
+            echo "Error: Unknown command '$COMMAND'"
+            usage
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
