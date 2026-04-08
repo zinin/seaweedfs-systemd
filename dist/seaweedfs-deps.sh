@@ -321,7 +321,8 @@ process_config() {
     # Create drop-in files for dependents
     for unit in "${!unit_deps[@]}"; do
         local deps_str="${unit_deps[$unit]}"
-        local -a deps_array=($deps_str)
+        local -a deps_array
+        read -r -a deps_array <<< "$deps_str"
 
         # Ensure unit ends with .service
         local unit_file="$unit"
