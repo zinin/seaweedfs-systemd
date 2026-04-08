@@ -54,16 +54,13 @@ xmllint --noout --schema xsd/seaweedfs-systemd.xsd /etc/seaweedfs/services.xml
 
 | Skill | Purpose |
 |-------|---------|
-| `/seaweedfs-update-help` | Download weed, generate help.txt |
-| `/seaweedfs-update-schema` | Update XSD from help.txt |
-| `/seaweedfs-update-schema-live` | Update XSD directly via ./weed |
+| `/seaweedfs-update` | Check latest version, download, update XSD and ansible vars |
 
-## Workflow: Update Schema
+## Workflow: Update SeaweedFS
 
-1. `/seaweedfs-update-help` — download new version
-2. `/seaweedfs-update-schema-live` — update XSD
-3. `git diff xsd/seaweedfs-systemd.xsd` — review changes
-4. Commit
+1. `/seaweedfs-update` — checks GitHub, downloads, updates XSD
+2. `git diff ansible/vars/main.yml xsd/seaweedfs-systemd.xsd` — review changes
+3. Commit
 
 ## Type Mapping (Go → XSD)
 
