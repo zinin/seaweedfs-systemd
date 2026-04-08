@@ -49,6 +49,12 @@ xmllint --noout --schema xsd/seaweedfs-systemd.xsd /etc/seaweedfs/services.xml
 
 - `xmlstarlet` — XML parsing
 - `xmllint` (libxml2-utils) — XSD validation
+- `python3` — update scripts
+
+In CI/cloud environments, install missing deps first:
+```bash
+apt-get update && apt-get install -y libxml2-utils python3
+```
 
 ## Skills
 
@@ -58,9 +64,15 @@ xmllint --noout --schema xsd/seaweedfs-systemd.xsd /etc/seaweedfs/services.xml
 
 ## Workflow: Update SeaweedFS
 
+### Interactive (local)
+
 1. `/seaweedfs-update` — checks GitHub, downloads, updates XSD
 2. `git diff ansible/vars/main.yml xsd/seaweedfs-systemd.xsd` — review changes
 3. Commit
+
+### Automated (Cloud Scheduled Task)
+
+Runs daily via `claude.ai/code/scheduled`. Non-interactive: skips if version unchanged, proceeds automatically if update available, creates PR with changes. No user questions asked.
 
 ## Type Mapping (Go → XSD)
 
