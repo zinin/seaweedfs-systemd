@@ -171,12 +171,46 @@ detect_cycles() {
     return $has_cycle
 }
 
+# Validate all service IDs and unit names used in dependencies/dependents
+validate_names() {
+    local config="$1"
+    local errors=0
+
+    # Validate service IDs
+    local ids
+    ids=$(get_all_service_ids "$config")
+    while IFS= read -r id; do
+        [[ -z "$id" ]] && continue
+        if ! validate_unit_name "$id"; then
+            errors=$((errors + 1))
+        fi
+    done <<< "$ids"
+
+    # Validate unit names in dependencies and dependents
+    local units
+    units=$(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:dependencies/x:unit | //x:dependents/x:unit" -v "." -n "$config" 2>/dev/null | sort -u || true)
+    while IFS= read -r unit; do
+        [[ -z "$unit" ]] && continue
+        if ! validate_unit_name "$unit"; then
+            errors=$((errors + 1))
+        fi
+    done <<< "$units"
+
+    return $((errors > 0 ? 1 : 0))
+}
+
 # Run all validations
 run_validations() {
     local config="$1"
     local errors=0
 
     echo "Validating configuration..."
+
+    # Validate all names (service IDs and unit names)
+    if ! validate_names "$config"; then
+        errors=1
+    fi
 
     # Validate service references
     if ! validate_service_refs "$config"; then
