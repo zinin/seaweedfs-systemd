@@ -16,7 +16,7 @@ import re
 import subprocess
 import sys
 import tarfile
-from urllib.request import urlopen, urlretrieve
+from urllib.request import urlopen, urlretrieve, Request
 
 REPO = "seaweedfs/seaweedfs"
 ARCHIVE_NAME = "linux_amd64_full.tar.gz"
@@ -26,9 +26,17 @@ ANSIBLE_VARS = "ansible/vars/main.yml"
 
 
 def get_latest_release() -> str:
-    """Get the latest release tag from GitHub API."""
+    """Get the latest release tag from GitHub API.
+
+    Uses GITHUB_TOKEN env var for authentication if available,
+    which increases rate limit from 60/hr to 5000/hr.
+    """
     api_url = f"https://api.github.com/repos/{REPO}/releases/latest"
-    with urlopen(api_url) as response:
+    req = Request(api_url)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        req.add_header("Authorization", f"token {token}")
+    with urlopen(req) as response:
         data = json.loads(response.read().decode())
         return data["tag_name"]
 
