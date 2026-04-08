@@ -16,7 +16,7 @@ DEFAULT_CONFIG="/etc/seaweedfs/services.xml"
 # Validate unit name: prevent path traversal
 validate_unit_name() {
     local name=$1
-    if [[ ! "$name" =~ ^[a-zA-Z0-9@._:-]+$ ]]; then
+    if [[ ! "$name" =~ ^[a-zA-Z0-9@._-]+$ ]]; then
         echo "Error: Invalid unit name '$name'"
         return 1
     fi

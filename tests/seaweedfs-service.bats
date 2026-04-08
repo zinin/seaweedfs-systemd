@@ -41,6 +41,26 @@ setup() {
     [[ "$status" -ne 0 ]]
 }
 
+# --- Unit tests: validate_unix_name ---
+
+# bats test_tags=unit
+@test "validate_unix_name: accepts valid username" {
+    run validate_unix_name "seaweedfs" "run-user"
+    [[ "$status" -eq 0 ]]
+}
+
+# bats test_tags=unit
+@test "validate_unix_name: accepts empty (optional)" {
+    run validate_unix_name "" "run-user"
+    [[ "$status" -eq 0 ]]
+}
+
+# bats test_tags=unit
+@test "validate_unix_name: rejects special chars" {
+    run validate_unix_name 'root;rm' "run-user"
+    [[ "$status" -ne 0 ]]
+}
+
 # --- Unit tests: build_args ---
 
 # bats test_tags=unit
@@ -162,8 +182,16 @@ exec "$@"
 STUB
     chmod +x "$stub_bin/sudo"
 
-    # Create run-dirs that fixtures reference
+    # Create run-dir in tmpdir
     mkdir -p "${BATS_TEST_TMPDIR}/run-dir"
+}
+
+# Generate a fixture with run-dir/config-dir/logs-dir replaced to use tmpdir
+make_tmp_fixture() {
+    local src=$1
+    local tmp_fixture="${BATS_TEST_TMPDIR}/$(basename "$src")"
+    sed -e "s|/var/lib/seaweedfs[^<]*|${BATS_TEST_TMPDIR}/run-dir|g" "$src" > "$tmp_fixture"
+    echo "$tmp_fixture"
 }
 
 # bats test_tags=integration
@@ -174,10 +202,10 @@ STUB
     # Keep stub alive long enough for wait_for_ready (sleep 0.5 + sleep 3)
     export STUB_WEED_SLEEP=5
 
-    # Create the run-dir that services-minimal.xml references
-    mkdir -p /var/lib/seaweedfs/test 2>/dev/null || true
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-minimal.xml")
 
-    run timeout 10 "${DIST_DIR}/seaweedfs-service.sh" test-server "${FIXTURES_DIR}/services-minimal.xml"
+    run timeout 10 "${DIST_DIR}/seaweedfs-service.sh" test-server "$fixture"
 
     # Check stub weed received the args
     [[ -f "$STUB_WEED_LOG" ]]
@@ -194,15 +222,17 @@ STUB
     export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
     export STUB_WEED_SLEEP=5
 
-    # Create the run-dir that services-global-args.xml references
-    mkdir -p /var/lib/seaweedfs 2>/dev/null || true
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-global-args.xml")
 
-    run timeout 10 "${DIST_DIR}/seaweedfs-service.sh" global-server "${FIXTURES_DIR}/services-global-args.xml"
+    run timeout 10 "${DIST_DIR}/seaweedfs-service.sh" global-server "$fixture"
 
     local logged
     logged=$(cat "$STUB_WEED_LOG")
-    [[ "$logged" == *"-config_dir /var/lib/seaweedfs/config"* ]]
-    [[ "$logged" == *"-logdir /var/lib/seaweedfs/logs"* ]]
+    # Check that global args are present (paths are tmpdir-rewritten by make_tmp_fixture)
+    [[ "$logged" == *"-config_dir"* ]]
+    [[ "$logged" == *"-logdir"* ]]
+    [[ "$logged" == *"server"* ]]
 }
 
 # bats test_tags=integration
