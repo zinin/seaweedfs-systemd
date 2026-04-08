@@ -2,85 +2,47 @@
 
 # This script launches SeaweedFS services based on XML configuration
 # It parses the XML config file and extracts service-specific arguments for the weed binary
-# Usage: ./seeweedfs-service.sh <service_id> [config_path]
+# Usage: ./seaweedfs-service.sh <service_id> [config_path]
 #   service_id: ID of the service from XML config
 #   config_path: Optional path to XML config (default: /etc/seaweedfs/services.xml)
 
-# Default configuration path (can be overridden via environment variables)
-CONFIG_PATH="${2:-${SEAWEEDFS_CONFIG_PATH:-/etc/seaweedfs/services.xml}}"
-SCHEMA_PATH="${SEAWEEDFS_SCHEMA_PATH:-/opt/seaweedfs/seaweedfs-systemd.xsd}"
-SERVICE_ID=$1
-WEED_BINARY="${SEAWEEDFS_WEED_BINARY:-/opt/seaweedfs/weed}"
+set -euo pipefail
 
-# Check if xmlstarlet is installed
-if ! command -v xmlstarlet &> /dev/null; then
-    echo "Error: xmlstarlet is not installed. Please install it using: sudo apt-get install xmlstarlet"
-    exit 1
-fi
+NS="http://zinin.ru/xml/ns/seaweedfs-systemd"
 
-# Check if xmllint is installed
-if ! command -v xmllint &> /dev/null; then
-    echo "Error: xmllint is not installed. Please install it using: sudo apt-get install libxml2-utils"
-    exit 1
-fi
+# Validate service ID: only allow safe characters for XPath injection prevention
+validate_service_id() {
+    local id=$1
+    if [[ ! "$id" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+        echo "Error: Invalid service ID '$id'"
+        return 1
+    fi
+}
 
-# Validate input parameters
-if [ -z "$SERVICE_ID" ]; then
-    echo "Usage: $0 <service_id> [config_path]"
-    exit 1
-fi
+# Validate unix user/group name
+validate_unix_name() {
+    local name=$1 field=$2
+    if [[ -n "$name" && ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid $field '$name'"
+        exit 1
+    fi
+}
 
-# Check if config file exists
-if [ ! -f "$CONFIG_PATH" ]; then
-    echo "Error: Config file not found at $CONFIG_PATH"
-    exit 1
-fi
-
-# Check if schema file exists
-if [ ! -f "$SCHEMA_PATH" ]; then
-    echo "Error: Schema file not found at $SCHEMA_PATH"
-    exit 1
-fi
-
-# Check if weed binary exists and is executable
-if [ ! -x "$WEED_BINARY" ]; then
-    echo "Error: Weed binary not found or not executable at $WEED_BINARY"
-    exit 1
-fi
-
-# Validate XML against schema
-xmllint --noout --schema "$SCHEMA_PATH" "$CONFIG_PATH"
-if [ $? -ne 0 ]; then
-    echo "Error: XML configuration file does not conform to the schema."
-    exit 1
-fi
-
-# Get service type
-SERVICE_TYPE=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:type" "$CONFIG_PATH")
-
-if [ -z "$SERVICE_TYPE" ]; then
-    echo "Error: Service with ID '$SERVICE_ID' not found in config"
-    exit 1
-fi
-
-# Get run-user and run-group
-RUN_USER=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-user" "$CONFIG_PATH")
-RUN_GROUP=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-group" "$CONFIG_PATH")
-
-# Function to build command arguments
+# Function to build command arguments from XML into ARGS array
 build_args() {
     local args_path=$1
-    local args=""
-
-    # Extract arguments based on the args element path
-    args=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -m "//x:service[x:id='$SERVICE_ID']/x:$args_path/*" -v "concat('-', name(), '=', .)" -o " " "$CONFIG_PATH")
-
-    echo "$args"
+    ARGS=()
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        ARGS+=("$line")
+    done < <(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:service[x:id='$SERVICE_ID']/x:$args_path/*" \
+        -v "concat('-', local-name(), '=', .)" -n "$CONFIG_PATH")
 }
 
 # Get mount directory for mount service type
 get_mount_dir() {
-    xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" \
+    xmlstarlet sel -N x="$NS" \
         -t -v "//x:service[x:id='$SERVICE_ID']/x:mount-args/x:dir" "$CONFIG_PATH"
 }
 
@@ -108,6 +70,10 @@ wait_for_ready() {
 
         echo "Waiting for mount point: $mount_dir"
         for i in {1..30}; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                echo "Error: weed process died while waiting for mount"
+                exit 1
+            fi
             if mountpoint -q "$mount_dir"; then
                 echo "Mount point ready after ${i}s"
                 systemd-notify --ready
@@ -122,16 +88,22 @@ wait_for_ready() {
     else
         # For other service types, wait 3 seconds
         sleep 3
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "Error: weed process died before ready"
+            exit 1
+        fi
         systemd-notify --ready
     fi
 }
 
 # Run weed binary with proper signal handling
 run_weed() {
-    local weed_cmd=$1
-
     # Start weed in background
-    eval "$weed_cmd" &
+    if [[ -n "$RUN_DIR" ]]; then
+        (cd "$RUN_DIR" && exec "${CMD[@]}") &
+    else
+        "${CMD[@]}" &
+    fi
     WEED_PID=$!
 
     # Setup signal handler for graceful shutdown
@@ -144,107 +116,114 @@ run_weed() {
     wait $WEED_PID
 }
 
-# Get run-dir, config-dir, and logs-dir if specified
-RUN_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
-CONFIG_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
-LOGS_DIR=$(xmlstarlet sel -N x="http://zinin.ru/xml/ns/seaweedfs-systemd" -t -v "//x:service[x:id='$SERVICE_ID']/x:logs-dir" "$CONFIG_PATH")
+main() {
+    # Default configuration path (can be overridden via environment variables)
+    CONFIG_PATH="${2:-${SEAWEEDFS_CONFIG_PATH:-/etc/seaweedfs/services.xml}}"
+    SCHEMA_PATH="${SEAWEEDFS_SCHEMA_PATH:-/opt/seaweedfs/seaweedfs-systemd.xsd}"
+    SERVICE_ID="${1:-}"
+    WEED_BINARY="${SEAWEEDFS_WEED_BINARY:-/opt/seaweedfs/weed}"
 
-# Build global arguments (config-dir and logs-dir)
-GLOBAL_ARGS=""
-if [ -n "$CONFIG_DIR" ]; then
-    GLOBAL_ARGS="-config_dir $CONFIG_DIR"
-fi
-if [ -n "$LOGS_DIR" ]; then
-    GLOBAL_ARGS="$GLOBAL_ARGS -logdir $LOGS_DIR"
-fi
-
-# Build service-specific arguments based on service type
-case $SERVICE_TYPE in
-    "admin")
-        ARGS=$(build_args "admin-args")
-        ;;
-    "backup")
-        ARGS=$(build_args "backup-args")
-        ;;
-    "db")
-        ARGS=$(build_args "db-args")
-        ;;
-    "filer")
-        ARGS=$(build_args "filer-args")
-        ;;
-    "filer.backup")
-        ARGS=$(build_args "filer-backup-args")
-        ;;
-    "filer.meta.backup")
-        ARGS=$(build_args "filer-meta-backup-args")
-        ;;
-    "filer.remote.gateway")
-        ARGS=$(build_args "filer-remote-gateway-args")
-        ;;
-    "filer.remote.sync")
-        ARGS=$(build_args "filer-remote-sync-args")
-        ;;
-    "filer.sync")
-        ARGS=$(build_args "filer-sync-args")
-        ;;
-    "master")
-        ARGS=$(build_args "master-args")
-        ;;
-    "master.follower")
-        ARGS=$(build_args "master-follower-args")
-        ;;
-    "mini")
-        ARGS=$(build_args "mini-args")
-        ;;
-    "mount")
-        ARGS=$(build_args "mount-args")
-        ;;
-    "mq.broker")
-        ARGS=$(build_args "mq-broker-args")
-        ;;
-    "mq.kafka.gateway")
-        ARGS=$(build_args "mq-kafka-gateway-args")
-        ;;
-    "s3")
-        ARGS=$(build_args "s3-args")
-        ;;
-    "server")
-        ARGS=$(build_args "server-args")
-        ;;
-    "sftp")
-        ARGS=$(build_args "sftp-args")
-        ;;
-    "volume")
-        ARGS=$(build_args "volume-args")
-        ;;
-    "webdav")
-        ARGS=$(build_args "webdav-args")
-        ;;
-    "worker")
-        ARGS=$(build_args "worker-args")
-        ;;
-    *)
-        echo "Error: Unknown service type '$SERVICE_TYPE'"
+    # Check if xmlstarlet is installed
+    if ! command -v xmlstarlet &> /dev/null; then
+        echo "Error: xmlstarlet is not installed. Please install it using: sudo apt-get install xmlstarlet"
         exit 1
-        ;;
-esac
+    fi
 
-# Build the full command
-if [ -n "$RUN_USER" ] && [ -n "$RUN_GROUP" ]; then
-    if [ -n "$RUN_DIR" ]; then
-        WEED_CMD="sudo -u '$RUN_USER' -g '$RUN_GROUP' bash -c \"cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS\""
-    else
-        WEED_CMD="sudo -u '$RUN_USER' -g '$RUN_GROUP' $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
+    # Check if xmllint is installed
+    if ! command -v xmllint &> /dev/null; then
+        echo "Error: xmllint is not installed. Please install it using: sudo apt-get install libxml2-utils"
+        exit 1
     fi
-else
-    if [ -n "$RUN_DIR" ]; then
-        WEED_CMD="bash -c \"cd '$RUN_DIR' && $WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS\""
-    else
-        WEED_CMD="$WEED_BINARY $GLOBAL_ARGS $SERVICE_TYPE $ARGS"
+
+    # Validate input parameters
+    if [[ -z "$SERVICE_ID" ]]; then
+        echo "Usage: $0 <service_id> [config_path]"
+        exit 1
     fi
+
+    # Sanitize SERVICE_ID
+    if ! validate_service_id "$SERVICE_ID"; then
+        exit 1
+    fi
+
+    # Check if config file exists
+    if [[ ! -f "$CONFIG_PATH" ]]; then
+        echo "Error: Config file not found at $CONFIG_PATH"
+        exit 1
+    fi
+
+    # Check if schema file exists
+    if [[ ! -f "$SCHEMA_PATH" ]]; then
+        echo "Error: Schema file not found at $SCHEMA_PATH"
+        exit 1
+    fi
+
+    # Check if weed binary exists and is executable
+    if [[ ! -x "$WEED_BINARY" ]]; then
+        echo "Error: Weed binary not found or not executable at $WEED_BINARY"
+        exit 1
+    fi
+
+    # Validate XML against schema
+    if ! xmllint --noout --schema "$SCHEMA_PATH" "$CONFIG_PATH"; then
+        echo "Error: XML configuration file does not conform to the schema."
+        exit 1
+    fi
+
+    # Get service type
+    SERVICE_TYPE=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:type" "$CONFIG_PATH")
+
+    if [[ -z "$SERVICE_TYPE" ]]; then
+        echo "Error: Service with ID '$SERVICE_ID' not found in config"
+        exit 1
+    fi
+
+    # Validate SERVICE_TYPE (defense-in-depth: protects against XPath injection if xmllint stubbed)
+    if [[ ! "$SERVICE_TYPE" =~ ^[a-zA-Z][a-zA-Z0-9.]*$ ]]; then
+        echo "Error: Invalid service type '$SERVICE_TYPE'"
+        exit 1
+    fi
+
+    # Get run-user and run-group
+    RUN_USER=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-user" "$CONFIG_PATH")
+    RUN_GROUP=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-group" "$CONFIG_PATH")
+
+    # Validate RUN_USER/RUN_GROUP
+    validate_unix_name "$RUN_USER" "run-user"
+    validate_unix_name "$RUN_GROUP" "run-group"
+
+    # Error on partial sudo config (silent root execution is dangerous)
+    if [[ -n "$RUN_USER" && -z "$RUN_GROUP" ]] || [[ -z "$RUN_USER" && -n "$RUN_GROUP" ]]; then
+        echo "Error: Both run-user and run-group must be set together"
+        exit 1
+    fi
+
+    # Get run-dir, config-dir, and logs-dir if specified
+    RUN_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
+    CONFIG_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
+    LOGS_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:logs-dir" "$CONFIG_PATH")
+
+    # Build service-specific arguments: type "filer.backup" -> element "filer-backup-args"
+    local ARGS_ELEMENT="${SERVICE_TYPE//./-}-args"
+    build_args "$ARGS_ELEMENT"
+
+    # Build command array
+    CMD=()
+    if [[ -n "$RUN_USER" && -n "$RUN_GROUP" ]]; then
+        CMD+=(sudo -u "$RUN_USER" -g "$RUN_GROUP" --)
+    fi
+    CMD+=("$WEED_BINARY")
+    [[ -n "$CONFIG_DIR" ]] && CMD+=(-config_dir "$CONFIG_DIR")
+    [[ -n "$LOGS_DIR" ]] && CMD+=(-logdir "$LOGS_DIR")
+    CMD+=("$SERVICE_TYPE")
+    [[ ${#ARGS[@]} -gt 0 ]] && CMD+=("${ARGS[@]}")
+
+    echo "Executing: ${CMD[*]}"
+
+    # Run weed with notify support
+    run_weed
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
-
-echo "Executing: $WEED_CMD"
-
-# Run weed with notify support
-run_weed "$WEED_CMD"
