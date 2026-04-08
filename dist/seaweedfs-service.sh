@@ -170,8 +170,8 @@ main() {
         exit 1
     fi
 
-    # Get service type
-    SERVICE_TYPE=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:type" "$CONFIG_PATH")
+    # Get service type (|| true: xmlstarlet returns 1 when XPath matches nothing)
+    SERVICE_TYPE=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:type" "$CONFIG_PATH" || true)
 
     if [[ -z "$SERVICE_TYPE" ]]; then
         echo "Error: Service with ID '$SERVICE_ID' not found in config"
@@ -184,9 +184,9 @@ main() {
         exit 1
     fi
 
-    # Get run-user and run-group
-    RUN_USER=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-user" "$CONFIG_PATH")
-    RUN_GROUP=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-group" "$CONFIG_PATH")
+    # Get run-user and run-group (|| true: optional elements)
+    RUN_USER=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-user" "$CONFIG_PATH" || true)
+    RUN_GROUP=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-group" "$CONFIG_PATH" || true)
 
     # Validate RUN_USER/RUN_GROUP
     validate_unix_name "$RUN_USER" "run-user"
@@ -198,10 +198,10 @@ main() {
         exit 1
     fi
 
-    # Get run-dir, config-dir, and logs-dir if specified
-    RUN_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
-    CONFIG_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH")
-    LOGS_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:logs-dir" "$CONFIG_PATH")
+    # Get run-dir, config-dir, and logs-dir if specified (|| true: optional elements)
+    RUN_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH" || true)
+    CONFIG_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:config-dir" "$CONFIG_PATH" || true)
+    LOGS_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:logs-dir" "$CONFIG_PATH" || true)
 
     # Build service-specific arguments: type "filer.backup" -> element "filer-backup-args"
     local ARGS_ELEMENT="${SERVICE_TYPE//./-}-args"
