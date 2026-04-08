@@ -40,6 +40,15 @@ ARGS=$(build_args "$ARGS_ELEMENT")
 
 XSD already validates that SERVICE_TYPE is from the enum, so "unknown type" is caught at xmllint stage.
 
+Additionally, validate SERVICE_TYPE with regex as defense-in-depth (protects against XPath injection
+via `$args_path` if xmllint is ever stubbed or bypassed):
+```bash
+if [[ ! "$SERVICE_TYPE" =~ ^[a-zA-Z][a-zA-Z0-9.]*$ ]]; then
+    echo "Error: Invalid service type '$SERVICE_TYPE'"
+    exit 1
+fi
+```
+
 ### 1.4 Remove eval, switch to arrays
 
 Current `run_weed()` takes a string command and uses `eval` (line 134).
@@ -74,8 +83,11 @@ CMD+=("$WEED_BINARY")
 [[ -n "$CONFIG_DIR" ]] && CMD+=(-config_dir "$CONFIG_DIR")
 [[ -n "$LOGS_DIR" ]] && CMD+=(-logdir "$LOGS_DIR")
 CMD+=("$SERVICE_TYPE")
-CMD+=("${ARGS[@]}")
+[[ ${#ARGS[@]} -gt 0 ]] && CMD+=("${ARGS[@]}")
 ```
+
+Note: guard `${#ARGS[@]} -gt 0` prevents "unbound variable" error with `set -u` on bash < 4.4
+when args element is empty (e.g. `<worker-args/>`).
 
 #### Launch without eval
 
@@ -103,18 +115,64 @@ if ! xmllint --noout --schema "$SCHEMA_PATH" "$CONFIG_PATH"; then
 fi
 ```
 
-### 1.6 Warn on incomplete RUN_USER/RUN_GROUP
+### 1.6 Validate RUN_USER/RUN_GROUP
 
-Line 233 silently ignores if only one of RUN_USER/RUN_GROUP is set.
+Line 233 silently ignores if only one of RUN_USER/RUN_GROUP is set, causing the service
+to run as root instead of the intended user. Also, values flow into `sudo` without sanitization.
 
-Fix: add warning when exactly one is set:
+Fix: validate with regex and error on partial config:
 ```bash
+# Validate RUN_USER/RUN_GROUP format
+validate_unix_name() {
+    local name=$1 field=$2
+    if [[ -n "$name" && ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid $field '$name'"
+        exit 1
+    fi
+}
+validate_unix_name "$RUN_USER" "run-user"
+validate_unix_name "$RUN_GROUP" "run-group"
+
+# Error on partial config (not warning — silent root execution is dangerous)
 if [[ -n "$RUN_USER" && -z "$RUN_GROUP" ]] || [[ -z "$RUN_USER" && -n "$RUN_GROUP" ]]; then
-    echo "Warning: Both run-user and run-group should be set. Ignoring partial sudo config."
+    echo "Error: Both run-user and run-group must be set together"
+    exit 1
 fi
 ```
 
-### 1.7 Extract NS constant
+### 1.7 Fix wait_for_ready false READY
+
+`wait_for_ready` checks PID once at 0.5s, then sleeps 3s and sends READY without rechecking.
+If the process dies during sleep, systemd receives a false READY notification.
+
+Fix: recheck PID before every `systemd-notify --ready` and in mountpoint loop:
+```bash
+# For non-mount: recheck before notify
+sleep 3
+if ! kill -0 "$pid" 2>/dev/null; then
+    echo "Error: weed process died before ready"
+    exit 1
+fi
+systemd-notify --ready
+
+# For mount: check PID each iteration
+for i in {1..30}; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "Error: weed process died while waiting for mount"
+        exit 1
+    fi
+    if mountpoint -q "$mount_dir"; then
+        echo "Mount point ready after ${i}s"
+        systemd-notify --ready
+        return 0
+    fi
+    sleep 1
+done
+```
+
+### 1.8 Extract NS constant
+
+### 1.8 Extract NS constant
 
 Replace 6 inline occurrences of `http://zinin.ru/xml/ns/seaweedfs-systemd` with:
 ```bash
@@ -125,13 +183,50 @@ Matches the pattern already used in `deps.sh`.
 
 ## 2. Bug Fixes in dist/seaweedfs-deps.sh
 
-### 2.1 Fix grep regex injection
+### 2.1 Validate unit names (path traversal prevention)
+
+Unit names from XML flow directly into file paths (`/etc/systemd/system/${unit}.service.d/`).
+A malicious unit name with `/` or `..` could write files outside the target directory.
+
+Fix: validate all unit names and service IDs used in path construction:
+```bash
+validate_unit_name() {
+    local name=$1
+    if [[ ! "$name" =~ ^[a-zA-Z0-9@._:-]+$ ]]; then
+        echo "Error: Invalid unit name '$name'"
+        return 1
+    fi
+}
+```
+
+### 2.2 Support all systemd unit suffixes
+
+Current code only handles `.service` and `.target`, auto-appending `.service` to everything else.
+This breaks `.socket`, `.mount`, `.timer`, `.path` units.
+
+Fix: recognize all common systemd suffixes:
+```bash
+# Check if unit name already has a known suffix
+has_unit_suffix() {
+    local name=$1
+    [[ "$name" =~ \.(service|target|socket|mount|timer|path|slice|scope)$ ]]
+}
+
+# Add .service only if no suffix present
+if ! has_unit_suffix "$unit"; then
+    unit="${unit}.service"
+fi
+```
+
+Also update `clean_dropins` to search for all `*.d/seaweedfs.conf` patterns, not just `*.service.d`.
+
+### 2.3 Fix grep regex injection
 
 Line 55: `grep -qx "$ref"` treats `$ref` as regex. A service ID containing `.` (e.g., hypothetical `service.a`) would match `serviceXa`.
 
 Fix: use `grep -qxF` for fixed-string matching.
 
-### 2.2 Fix return value overflow
+### 2.4 Fix return value overflow
 
 Line 61: `return $errors` wraps at 256 (shell return values 0-255). >255 errors would return 0 = false success.
 
@@ -175,8 +270,11 @@ tests/
 
 - `PROJECT_ROOT`, `FIXTURES_DIR`, `DIST_DIR` path constants
 - `NS` namespace constant
-- `source_service_functions()` — sources service.sh functions with stubs for external commands (xmllint, systemd-notify, sudo)
+- `source_service_functions()` — sources service.sh functions without running main (BASH_SOURCE guard)
 - `create_stub_weed()` — creates executable stub in `$BATS_TEST_TMPDIR` that logs args to file
+- `setup_stub_path()` — creates stub scripts for `xmllint`, `systemd-notify`, `systemctl` in
+  `$BATS_TEST_TMPDIR/bin` and prepends to PATH. This approach is required because `command -v`
+  does not find bash exported functions — only real executables in PATH.
 
 ### 3.3 helpers/stub-weed.bash
 
@@ -293,21 +391,22 @@ jobs:
           sudo apt-get install -y xmlstarlet libxml2-utils shellcheck
       - name: Install bats
         run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          git clone --depth 1 --branch v1.11.1 https://github.com/bats-core/bats-core.git /tmp/bats
           sudo /tmp/bats/install.sh /usr/local
       - run: make lint
       - run: make validate
       - run: make test
 ```
 
-Bats installed from git (not apt) to ensure tag filtering support (`--filter-tags`).
+Bats installed from git with pinned version (not apt) to ensure tag filtering support (`--filter-tags`)
+and reproducible CI builds.
 
 ## Summary of all changes
 
 | Area | Files | What |
 |------|-------|------|
-| Bug fixes | `dist/seaweedfs-service.sh` | 7 fixes: set -euo, sanitize ID, computed mapping, remove eval/arrays, xmllint+set-e, user/group warning, NS constant |
-| Bug fixes | `dist/seaweedfs-deps.sh` | 2 fixes: grep -qxF, return overflow |
+| Bug fixes | `dist/seaweedfs-service.sh` | 8 fixes: set -euo, sanitize ID, validate SERVICE_TYPE, computed mapping, remove eval/arrays, xmllint+set-e, validate+error user/group, fix wait_for_ready PID recheck, NS constant |
+| Bug fixes | `dist/seaweedfs-deps.sh` | 4 fixes: validate unit names (path traversal), support all systemd suffixes, grep -qxF, return overflow |
 | Tests | `tests/*.bats`, `tests/helpers/` | 3 BATS test files, 2 helpers |
 | Fixtures | `tests/fixtures/` | 9 new XML fixtures |
 | Build | `Makefile` | lint, validate, test targets |

@@ -181,6 +181,15 @@ validate_service_id() {
     fi
 }
 
+# Validate unix user/group name
+validate_unix_name() {
+    local name=$1 field=$2
+    if [[ -n "$name" && ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid $field '$name'"
+        exit 1
+    fi
+}
+
 # Function to build command arguments from XML into ARGS array
 build_args() {
     local args_path=$1
@@ -223,6 +232,10 @@ wait_for_ready() {
 
         echo "Waiting for mount point: $mount_dir"
         for i in {1..30}; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                echo "Error: weed process died while waiting for mount"
+                exit 1
+            fi
             if mountpoint -q "$mount_dir"; then
                 echo "Mount point ready after ${i}s"
                 systemd-notify --ready
@@ -237,6 +250,10 @@ wait_for_ready() {
     else
         # For other service types, wait 3 seconds
         sleep 3
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "Error: weed process died before ready"
+            exit 1
+        fi
         systemd-notify --ready
     fi
 }
@@ -323,9 +340,25 @@ main() {
         exit 1
     fi
 
+    # Validate SERVICE_TYPE (defense-in-depth: protects against XPath injection if xmllint stubbed)
+    if [[ ! "$SERVICE_TYPE" =~ ^[a-zA-Z][a-zA-Z0-9.]*$ ]]; then
+        echo "Error: Invalid service type '$SERVICE_TYPE'"
+        exit 1
+    fi
+
     # Get run-user and run-group
     RUN_USER=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-user" "$CONFIG_PATH")
     RUN_GROUP=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-group" "$CONFIG_PATH")
+
+    # Validate RUN_USER/RUN_GROUP
+    validate_unix_name "$RUN_USER" "run-user"
+    validate_unix_name "$RUN_GROUP" "run-group"
+
+    # Error on partial sudo config (silent root execution is dangerous)
+    if [[ -n "$RUN_USER" && -z "$RUN_GROUP" ]] || [[ -z "$RUN_USER" && -n "$RUN_GROUP" ]]; then
+        echo "Error: Both run-user and run-group must be set together"
+        exit 1
+    fi
 
     # Get run-dir, config-dir, and logs-dir if specified
     RUN_DIR=$(xmlstarlet sel -N x="$NS" -t -v "//x:service[x:id='$SERVICE_ID']/x:run-dir" "$CONFIG_PATH")
@@ -336,11 +369,6 @@ main() {
     local ARGS_ELEMENT="${SERVICE_TYPE//./-}-args"
     build_args "$ARGS_ELEMENT"
 
-    # Warn on incomplete sudo config
-    if [[ -n "$RUN_USER" && -z "$RUN_GROUP" ]] || [[ -z "$RUN_USER" && -n "$RUN_GROUP" ]]; then
-        echo "Warning: Both run-user and run-group should be set. Ignoring partial sudo config."
-    fi
-
     # Build command array
     CMD=()
     if [[ -n "$RUN_USER" && -n "$RUN_GROUP" ]]; then
@@ -350,7 +378,7 @@ main() {
     [[ -n "$CONFIG_DIR" ]] && CMD+=(-config_dir "$CONFIG_DIR")
     [[ -n "$LOGS_DIR" ]] && CMD+=(-logdir "$LOGS_DIR")
     CMD+=("$SERVICE_TYPE")
-    CMD+=("${ARGS[@]}")
+    [[ ${#ARGS[@]} -gt 0 ]] && CMD+=("${ARGS[@]}")
 
     echo "Executing: ${CMD[*]}"
 
@@ -509,7 +537,7 @@ One service per type (all 22). Each uses minimal args (one field).
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <iam-args><masters>localhost:9333</masters></iam-args>
+        <iam-args><master>localhost:9333</master></iam-args>
     </service>
     <service>
         <id>t-master</id>
@@ -881,6 +909,38 @@ create_stub_weed() {
     chmod +x "$stub"
     echo "$stub"
 }
+
+# Create stub scripts in PATH for integration tests.
+# command -v does NOT find bash exported functions — only real executables.
+# So we create stub scripts instead of using export -f.
+setup_stub_path() {
+    local stub_bin="${BATS_TEST_TMPDIR}/bin"
+    mkdir -p "$stub_bin"
+
+    # xmllint stub — validates nothing, returns success
+    cat > "$stub_bin/xmllint" <<'STUB'
+#!/bin/bash
+exit 0
+STUB
+    chmod +x "$stub_bin/xmllint"
+
+    # systemd-notify stub
+    cat > "$stub_bin/systemd-notify" <<'STUB'
+#!/bin/bash
+exit 0
+STUB
+    chmod +x "$stub_bin/systemd-notify"
+
+    # systemctl stub
+    cat > "$stub_bin/systemctl" <<'STUB'
+#!/bin/bash
+exit 0
+STUB
+    chmod +x "$stub_bin/systemctl"
+
+    # Prepend to PATH so stubs are found before real binaries
+    export PATH="${stub_bin}:${PATH}"
+}
 ```
 
 - [ ] **Step 2: Create tests/helpers/stub-weed.bash**
@@ -916,6 +976,9 @@ git commit -m "test: add BATS test helpers and stub weed binary"
 setup() {
     load helpers/setup.bash
     source_service_functions
+    # Set env vars needed by sourced functions
+    export SEAWEEDFS_WEED_BINARY="${BATS_TEST_TMPDIR}/weed"
+    export SEAWEEDFS_SCHEMA_PATH="${XSD_PATH}"
 }
 
 # --- Unit tests: validate_service_id ---
@@ -1053,26 +1116,13 @@ setup() {
 
 # bats test_tags=integration
 @test "service.sh: full run with stub weed produces correct args" {
+    setup_stub_path
     local stub_weed
     stub_weed=$(create_stub_weed)
     export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=0
 
-    # Stub out xmllint (skip schema validation), systemd-notify
-    xmllint() { return 0; }
-    systemd-notify() { return 0; }
-    export -f xmllint systemd-notify
-
-    run bash -c "
-        export SEAWEEDFS_WEED_BINARY='${stub_weed}'
-        export SEAWEEDFS_SCHEMA_PATH='${XSD_PATH}'
-        export STUB_WEED_LOG='${STUB_WEED_LOG}'
-        export STUB_WEED_SLEEP=0
-        # Stub xmllint and systemd-notify
-        xmllint() { return 0; }
-        systemd-notify() { return 0; }
-        export -f xmllint systemd-notify
-        '${DIST_DIR}/seaweedfs-service.sh' test-server '${FIXTURES_DIR}/services-minimal.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-service.sh" test-server "${FIXTURES_DIR}/services-minimal.xml"
 
     # Check stub weed received the args
     [[ -f "$STUB_WEED_LOG" ]]
@@ -1084,20 +1134,13 @@ setup() {
 
 # bats test_tags=integration
 @test "service.sh: global args (config-dir, logs-dir) passed before subcommand" {
+    setup_stub_path
     local stub_weed
     stub_weed=$(create_stub_weed)
     export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=0
 
-    run bash -c "
-        export SEAWEEDFS_WEED_BINARY='${stub_weed}'
-        export SEAWEEDFS_SCHEMA_PATH='${XSD_PATH}'
-        export STUB_WEED_LOG='${STUB_WEED_LOG}'
-        export STUB_WEED_SLEEP=0
-        xmllint() { return 0; }
-        systemd-notify() { return 0; }
-        export -f xmllint systemd-notify
-        '${DIST_DIR}/seaweedfs-service.sh' global-server '${FIXTURES_DIR}/services-global-args.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-service.sh" global-server "${FIXTURES_DIR}/services-global-args.xml"
 
     local logged
     logged=$(cat "$STUB_WEED_LOG")
@@ -1107,42 +1150,31 @@ setup() {
 
 # bats test_tags=integration
 @test "service.sh: missing config file returns exit 1" {
-    run bash -c "
-        xmllint() { return 0; }
-        systemd-notify() { return 0; }
-        export -f xmllint systemd-notify
-        export SEAWEEDFS_SCHEMA_PATH='${XSD_PATH}'
-        export SEAWEEDFS_WEED_BINARY='/bin/true'
-        '${DIST_DIR}/seaweedfs-service.sh' test-server /nonexistent/config.xml
-    "
+    setup_stub_path
+    export SEAWEEDFS_WEED_BINARY='/bin/true'
+
+    run "${DIST_DIR}/seaweedfs-service.sh" test-server /nonexistent/config.xml
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"Config file not found"* ]]
 }
 
 # bats test_tags=integration
 @test "service.sh: service not found returns exit 1" {
+    setup_stub_path
     local stub_weed
     stub_weed=$(create_stub_weed)
 
-    run bash -c "
-        export SEAWEEDFS_WEED_BINARY='${stub_weed}'
-        export SEAWEEDFS_SCHEMA_PATH='${XSD_PATH}'
-        xmllint() { return 0; }
-        systemd-notify() { return 0; }
-        export -f xmllint systemd-notify
-        '${DIST_DIR}/seaweedfs-service.sh' nonexistent-id '${FIXTURES_DIR}/services-minimal.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-service.sh" nonexistent-id "${FIXTURES_DIR}/services-minimal.xml"
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"not found in config"* ]]
 }
 
 # bats test_tags=integration
 @test "service.sh: invalid SERVICE_ID rejected" {
-    run bash -c "
-        export SEAWEEDFS_SCHEMA_PATH='${XSD_PATH}'
-        export SEAWEEDFS_WEED_BINARY='/bin/true'
-        '${DIST_DIR}/seaweedfs-service.sh' \"test'; drop\" '${FIXTURES_DIR}/services-minimal.xml'
-    "
+    setup_stub_path
+    export SEAWEEDFS_WEED_BINARY='/bin/true'
+
+    run "${DIST_DIR}/seaweedfs-service.sh" "test'; drop" "${FIXTURES_DIR}/services-minimal.xml"
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"Invalid service ID"* ]]
 }
@@ -1309,19 +1341,11 @@ XMLEOF
 
 # bats test_tags=integration
 @test "deps.sh check: dry-run creates no files" {
+    setup_stub_path
     export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
     mkdir -p "$DROPIN_DIR_BASE"
 
-    # Stub systemctl
-    systemctl() { return 0; }
-    export -f systemctl
-
-    run bash -c "
-        export DROPIN_DIR_BASE='${DROPIN_DIR_BASE}'
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' check '${FIXTURES_DIR}/services-with-dependents.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-deps.sh" check "${FIXTURES_DIR}/services-with-dependents.xml"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"Would create"* ]]
     # No actual files should be created
@@ -1332,15 +1356,11 @@ XMLEOF
 
 # bats test_tags=integration
 @test "deps.sh apply: creates drop-in files" {
+    setup_stub_path
     export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
     mkdir -p "$DROPIN_DIR_BASE"
 
-    run bash -c "
-        export DROPIN_DIR_BASE='${DROPIN_DIR_BASE}'
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' apply '${FIXTURES_DIR}/services-with-dependents.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-deps.sh" apply "${FIXTURES_DIR}/services-with-dependents.xml"
     [[ "$status" -eq 0 ]]
 
     # nginx drop-in should exist
@@ -1356,15 +1376,11 @@ XMLEOF
 
 # bats test_tags=integration
 @test "deps.sh apply: shared dependent combines services" {
+    setup_stub_path
     export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
     mkdir -p "$DROPIN_DIR_BASE"
 
-    run bash -c "
-        export DROPIN_DIR_BASE='${DROPIN_DIR_BASE}'
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' apply '${FIXTURES_DIR}/services-shared-dependent.xml'
-    "
+    run "${DIST_DIR}/seaweedfs-deps.sh" apply "${FIXTURES_DIR}/services-shared-dependent.xml"
     [[ "$status" -eq 0 ]]
 
     local nginx_conf
@@ -1376,11 +1392,9 @@ XMLEOF
 
 # bats test_tags=integration
 @test "deps.sh check: no deps config outputs no-op messages" {
-    run bash -c "
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' check '${FIXTURES_DIR}/services-no-deps.xml'
-    "
+    setup_stub_path
+
+    run "${DIST_DIR}/seaweedfs-deps.sh" check "${FIXTURES_DIR}/services-no-deps.xml"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"No dependents found"* ]]
     [[ "$output" == *"No dependencies found"* ]]
@@ -1388,38 +1402,30 @@ XMLEOF
 
 # bats test_tags=integration
 @test "deps.sh check: cycle detected returns exit 1" {
-    run bash -c "
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' check '${FIXTURES_DIR}/services-with-cycle.xml'
-    "
+    setup_stub_path
+
+    run "${DIST_DIR}/seaweedfs-deps.sh" check "${FIXTURES_DIR}/services-with-cycle.xml"
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"Cycle detected"* ]]
 }
 
 # bats test_tags=integration
 @test "deps.sh check: invalid ref returns exit 1" {
-    run bash -c "
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' check '${FIXTURES_DIR}/services-invalid-ref.xml'
-    "
+    setup_stub_path
+
+    run "${DIST_DIR}/seaweedfs-deps.sh" check "${FIXTURES_DIR}/services-invalid-ref.xml"
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"Unknown service reference"* ]]
 }
 
 # bats test_tags=integration
 @test "deps.sh clean: removes drop-in files" {
+    setup_stub_path
     export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
     mkdir -p "${DROPIN_DIR_BASE}/nginx.service.d"
     echo "[Unit]" > "${DROPIN_DIR_BASE}/nginx.service.d/seaweedfs.conf"
 
-    run bash -c "
-        export DROPIN_DIR_BASE='${DROPIN_DIR_BASE}'
-        systemctl() { return 0; }
-        export -f systemctl
-        '${DIST_DIR}/seaweedfs-deps.sh' clean
-    "
+    run "${DIST_DIR}/seaweedfs-deps.sh" clean
     [[ "$status" -eq 0 ]]
     [[ ! -f "${DROPIN_DIR_BASE}/nginx.service.d/seaweedfs.conf" ]]
 }
@@ -1662,7 +1668,7 @@ jobs:
 
       - name: Install bats
         run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          git clone --depth 1 --branch v1.11.1 https://github.com/bats-core/bats-core.git /tmp/bats
           sudo /tmp/bats/install.sh /usr/local
 
       - name: Lint
