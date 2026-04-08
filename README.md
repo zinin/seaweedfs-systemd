@@ -16,11 +16,12 @@ SeaweedFS is a distributed file system designed to store and serve billions of f
 
 ## Features
 
-- [XML Configuration](https://example.com): Define SeaweedFS services using XML files.
-- [XSD Validation](https://example.com): Validate XML configuration files against an XSD schema.
-- [Systemd Integration](https://example.com): Manage SeaweedFS services using systemd.
-- [Ansible Deployment](https://example.com): Automate the deployment of SeaweedFS services using Ansible.
-- [Dependencies Management](#dependencies-management): Manage systemd service dependencies.
+- **XML Configuration**: Define SeaweedFS services using XML files.
+- **XSD Validation**: Validate XML configuration files against an XSD schema.
+- **Systemd Integration**: Manage SeaweedFS services using systemd.
+- **Ansible Deployment**: Automate the deployment of SeaweedFS services using Ansible.
+- **Dependencies Management**: Manage systemd service dependencies.
+- **Automatic Updates**: XSD schema and version are kept in sync with SeaweedFS releases via a daily [Claude Code](https://claude.ai/code) scheduled task.
 
 ## Usage
 
@@ -209,6 +210,16 @@ ansible-playbook -I inventory ansible/tasks/main.yml
 ```
 
 ---
+
+## Automatic Updates
+
+The XSD schema and SeaweedFS version are automatically kept up to date. A Claude Code scheduled task runs daily and:
+
+1. Checks the latest [SeaweedFS release](https://github.com/seaweedfs/seaweedfs/releases) on GitHub
+2. If a new version is available — downloads it, updates the XSD schema and Ansible vars
+3. Creates a pull request with the changes for review
+
+This ensures the configuration schema always matches the latest SeaweedFS parameters.
 
 ## Contributing
 
