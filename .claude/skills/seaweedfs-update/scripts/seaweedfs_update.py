@@ -26,19 +26,38 @@ ANSIBLE_VARS = "ansible/vars/main.yml"
 
 
 def get_latest_release() -> str:
-    """Get the latest release tag from GitHub API.
+    """Get the latest release tag from GitHub.
 
-    Uses GITHUB_TOKEN env var for authentication if available,
-    which increases rate limit from 60/hr to 5000/hr.
+    Tries in order:
+    1. gh CLI (uses GitHub App token in cloud environments)
+    2. GitHub API with GITHUB_TOKEN/GH_TOKEN env var
+    3. GitHub API unauthenticated (60 req/hr limit)
     """
+    # Try gh CLI first — works in cloud environments with GitHub App auth
+    try:
+        result = subprocess.run(
+            ["gh", "api", f"repos/{REPO}/releases/latest", "--jq", ".tag_name"],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Fall back to urllib with optional token
     api_url = f"https://api.github.com/repos/{REPO}/releases/latest"
     req = Request(api_url)
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if token:
         req.add_header("Authorization", f"token {token}")
-    with urlopen(req) as response:
-        data = json.loads(response.read().decode())
-        return data["tag_name"]
+    try:
+        with urlopen(req) as response:
+            data = json.loads(response.read().decode())
+            return data["tag_name"]
+    except Exception as e:
+        print(f"ERROR: Failed to get latest release: {e}", file=sys.stderr)
+        print("GitHub API may be rate-limited. Set GITHUB_TOKEN or install gh CLI.", file=sys.stderr)
+        sys.exit(1)
 
 
 def get_current_version() -> str | None:
