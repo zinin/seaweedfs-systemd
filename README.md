@@ -221,6 +221,27 @@ The XSD schema and SeaweedFS version are automatically kept up to date. A Claude
 
 This ensures the configuration schema always matches the latest SeaweedFS parameters.
 
+## Development
+
+### Prerequisites
+
+```sh
+sudo apt-get install xmlstarlet libxml2-utils shellcheck
+git clone --depth 1 --branch v1.11.1 https://github.com/bats-core/bats-core.git /tmp/bats
+sudo /tmp/bats/install.sh /usr/local
+```
+
+### Running tests
+
+```sh
+make all              # lint + validate + test (everything)
+make lint             # shellcheck for bash scripts
+make validate         # xmllint XSD validation of fixtures
+make test             # all BATS tests
+make test-unit        # only unit tests (fast, no xmlstarlet needed)
+make test-integration # only integration tests
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.

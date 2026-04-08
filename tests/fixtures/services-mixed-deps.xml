@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>main-server</id>
+        <type>server</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs</run-dir>
+        <server-args>
+            <dir>/data</dir>
+        </server-args>
+    </service>
+    <service>
+        <id>main-mount</id>
+        <type>mount</type>
+        <run-user>root</run-user>
+        <run-group>root</run-group>
+        <run-dir>/var/lib/seaweedfs/mount</run-dir>
+        <dependencies>
+            <service dependency-type="binds-to">main-server</service>
+            <unit>network-online.target</unit>
+            <unit dependency-type="wants">local-fs.target</unit>
+        </dependencies>
+        <mount-args>
+            <filer>localhost:8888</filer>
+            <dir>/mnt/sw</dir>
+        </mount-args>
+    </service>
+</services>

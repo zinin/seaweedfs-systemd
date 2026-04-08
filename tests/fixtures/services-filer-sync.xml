@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>test-filer-sync</id>
+        <type>filer.sync</type>
+        <run-user>root</run-user>
+        <run-group>root</run-group>
+        <run-dir>/var/lib/seaweedfs</run-dir>
+        <filer-sync-args>
+            <a>host-a:10201</a>
+            <b>host-b:10201</b>
+            <a.filerProxy>true</a.filerProxy>
+            <b.filerProxy>true</b.filerProxy>
+        </filer-sync-args>
+    </service>
+</services>

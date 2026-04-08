@@ -1,0 +1,28 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xmlstarlet libxml2-utils shellcheck
+
+      - name: Install bats
+        run: |
+          git clone --depth 1 --branch v1.11.1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+
+      - name: Lint
+        run: make lint
+
+      - name: Validate XSD
+        run: make validate
+
+      - name: Test
+        run: make test

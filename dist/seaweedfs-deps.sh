@@ -9,9 +9,24 @@
 set -euo pipefail
 
 DROPIN_FILENAME="seaweedfs.conf"
-DROPIN_DIR_BASE="/etc/systemd/system"
+DROPIN_DIR_BASE="${DROPIN_DIR_BASE:-/etc/systemd/system}"
 NS="http://zinin.ru/xml/ns/seaweedfs-systemd"
 DEFAULT_CONFIG="/etc/seaweedfs/services.xml"
+
+# Validate unit name: prevent path traversal
+validate_unit_name() {
+    local name=$1
+    if [[ ! "$name" =~ ^[a-zA-Z0-9@._-]+$ ]]; then
+        echo "Error: Invalid unit name '$name'"
+        return 1
+    fi
+}
+
+# Check if unit name already has a known systemd suffix
+has_unit_suffix() {
+    local name=$1
+    [[ "$name" =~ \.(service|target|socket|mount|timer|path|slice|scope)$ ]]
+}
 
 usage() {
     echo "Usage: $0 <command> [config_path]"
@@ -52,13 +67,14 @@ validate_service_refs() {
 
     while IFS= read -r ref; do
         [[ -z "$ref" ]] && continue
-        if ! echo "$valid_ids" | grep -qx "$ref"; then
+        validate_unit_name "$ref" || { errors=$((errors + 1)); continue; }
+        if ! echo "$valid_ids" | grep -qxF -- "$ref"; then
             echo "Error: Unknown service reference: $ref"
             errors=$((errors + 1))
         fi
     done <<< "$refs"
 
-    return $errors
+    return $((errors > 0 ? 1 : 0))
 }
 
 # Validate external unit references (warning only)
@@ -73,9 +89,11 @@ validate_external_units() {
 
     while IFS= read -r unit; do
         [[ -z "$unit" ]] && continue
-        # Add .service suffix if not present and not a .target
+        # Add .service suffix if no known systemd suffix present
         local unit_name="$unit"
-        [[ "$unit_name" != *.service && "$unit_name" != *.target ]] && unit_name="${unit}.service"
+        if ! has_unit_suffix "$unit_name"; then
+            unit_name="${unit_name}.service"
+        fi
 
         if ! systemctl list-unit-files "$unit_name" &>/dev/null; then
             echo "Warning: Unit not found: $unit_name (may be generated dynamically)"
@@ -153,12 +171,46 @@ detect_cycles() {
     return $has_cycle
 }
 
+# Validate all service IDs and unit names used in dependencies/dependents
+validate_names() {
+    local config="$1"
+    local errors=0
+
+    # Validate service IDs
+    local ids
+    ids=$(get_all_service_ids "$config")
+    while IFS= read -r id; do
+        [[ -z "$id" ]] && continue
+        if ! validate_unit_name "$id"; then
+            errors=$((errors + 1))
+        fi
+    done <<< "$ids"
+
+    # Validate unit names in dependencies and dependents
+    local units
+    units=$(xmlstarlet sel -N x="$NS" \
+        -t -m "//x:dependencies/x:unit | //x:dependents/x:unit" -v "." -n "$config" 2>/dev/null | sort -u || true)
+    while IFS= read -r unit; do
+        [[ -z "$unit" ]] && continue
+        if ! validate_unit_name "$unit"; then
+            errors=$((errors + 1))
+        fi
+    done <<< "$units"
+
+    return $((errors > 0 ? 1 : 0))
+}
+
 # Run all validations
 run_validations() {
     local config="$1"
     local errors=0
 
     echo "Validating configuration..."
+
+    # Validate all names (service IDs and unit names)
+    if ! validate_names "$config"; then
+        errors=1
+    fi
 
     # Validate service references
     if ! validate_service_refs "$config"; then
@@ -182,15 +234,6 @@ run_validations() {
     return 0
 }
 
-if [[ $# -lt 1 ]]; then
-    usage
-fi
-
-COMMAND="$1"
-CONFIG_PATH="${2:-$DEFAULT_CONFIG}"
-
-check_deps
-
 # Remove all seaweedfs drop-in files
 clean_dropins() {
     local dry_run="${1:-false}"
@@ -198,7 +241,7 @@ clean_dropins() {
 
     echo "Searching for seaweedfs drop-in files..."
 
-    for dropin in "$DROPIN_DIR_BASE"/*.service.d/"$DROPIN_FILENAME"; do
+    for dropin in "$DROPIN_DIR_BASE"/*.d/"$DROPIN_FILENAME"; do
         [[ -e "$dropin" ]] || continue
         found=1
         if [[ "$dry_run" == "true" ]]; then
@@ -268,8 +311,10 @@ generate_dependencies_dropin() {
         local unit="${item%%:*}"
         local dep_type="${item#*:}"
 
-        # Add .service suffix if not present and not a .target
-        [[ "$unit" != *.service && "$unit" != *.target ]] && unit="${unit}.service"
+        # Add .service suffix if no known systemd suffix present
+        if ! has_unit_suffix "$unit"; then
+            unit="${unit}.service"
+        fi
 
         after_list+=("$unit")
         case "$dep_type" in
@@ -306,6 +351,7 @@ process_config() {
     # Collect dependents: for each service with dependents, extract unit and type
     while IFS= read -r service_id; do
         [[ -z "$service_id" ]] && continue
+        validate_unit_name "$service_id" || continue
 
         # Get units and their dependency types for this service
         while IFS= read -r line; do
@@ -314,6 +360,7 @@ process_config() {
             unit=$(echo "$line" | cut -d$'\t' -f1)
             dep_type=$(echo "$line" | cut -d$'\t' -f2)
             [[ -z "$dep_type" ]] && dep_type="requires"
+            validate_unit_name "$unit" || continue
 
             # Accumulate: unit -> "service_id:dep_type ..."
             if [[ -n "${unit_deps[$unit]:-}" ]]; then
@@ -329,12 +376,16 @@ process_config() {
 
     # Create drop-in files for dependents
     for unit in "${!unit_deps[@]}"; do
+        validate_unit_name "$unit" || continue
         local deps_str="${unit_deps[$unit]}"
-        local -a deps_array=($deps_str)
+        local -a deps_array
+        read -r -a deps_array <<< "$deps_str"
 
-        # Ensure unit ends with .service
+        # Ensure unit has a systemd suffix
         local unit_file="$unit"
-        [[ "$unit_file" != *.service ]] && unit_file="${unit}.service"
+        if ! has_unit_suffix "$unit_file"; then
+            unit_file="${unit_file}.service"
+        fi
 
         local dropin_dir="$DROPIN_DIR_BASE/${unit_file}.d"
         local dropin_file="$dropin_dir/$DROPIN_FILENAME"
@@ -362,6 +413,7 @@ process_config() {
     local found_deps=0
     while IFS= read -r service_id; do
         [[ -z "$service_id" ]] && continue
+        validate_unit_name "$service_id" || continue
         found_deps=1
 
         local -a deps_array=()
@@ -385,6 +437,7 @@ process_config() {
             unit=$(echo "$line" | cut -d$'\t' -f1)
             dep_type=$(echo "$line" | cut -d$'\t' -f2)
             [[ -z "$dep_type" ]] && dep_type="requires"
+            validate_unit_name "$unit" || continue
             deps_array+=("${unit}:${dep_type}")
         done < <(xmlstarlet sel -N x="$NS" \
             -t -m "//x:service[x:id='$service_id']/x:dependencies/x:unit" \
@@ -415,52 +468,67 @@ process_config() {
     fi
 }
 
-case "$COMMAND" in
-    clean)
-        clean_dropins false
-        echo "Running: systemctl daemon-reload"
-        systemctl daemon-reload
-        echo "Done"
-        ;;
-    apply)
-        if [[ ! -f "$CONFIG_PATH" ]]; then
-            echo "Error: Config file not found: $CONFIG_PATH"
-            exit 1
-        fi
-        echo "Applying dependencies from: $CONFIG_PATH"
-
-        if ! run_validations "$CONFIG_PATH"; then
-            exit 1
-        fi
-
-        clean_dropins false
-        process_config "$CONFIG_PATH" false
-        echo ""
-        echo "Running: systemctl daemon-reload"
-        systemctl daemon-reload
-        echo "Done"
-        ;;
-    check)
-        if [[ ! -f "$CONFIG_PATH" ]]; then
-            echo "Error: Config file not found: $CONFIG_PATH"
-            exit 1
-        fi
-        echo "Checking dependencies from: $CONFIG_PATH (dry-run)"
-        echo ""
-
-        if ! run_validations "$CONFIG_PATH"; then
-            echo ""
-            echo "Fix validation errors before applying"
-            exit 1
-        fi
-
-        echo ""
-        echo "=== Files to remove ==="
-        clean_dropins true
-        process_config "$CONFIG_PATH" true
-        ;;
-    *)
-        echo "Error: Unknown command '$COMMAND'"
+main() {
+    if [[ $# -lt 1 ]]; then
         usage
-        ;;
-esac
+    fi
+
+    COMMAND="$1"
+    CONFIG_PATH="${2:-$DEFAULT_CONFIG}"
+
+    check_deps
+
+    case "$COMMAND" in
+        clean)
+            clean_dropins false
+            echo "Running: systemctl daemon-reload"
+            systemctl daemon-reload
+            echo "Done"
+            ;;
+        apply)
+            if [[ ! -f "$CONFIG_PATH" ]]; then
+                echo "Error: Config file not found: $CONFIG_PATH"
+                exit 1
+            fi
+            echo "Applying dependencies from: $CONFIG_PATH"
+
+            if ! run_validations "$CONFIG_PATH"; then
+                exit 1
+            fi
+
+            clean_dropins false
+            process_config "$CONFIG_PATH" false
+            echo ""
+            echo "Running: systemctl daemon-reload"
+            systemctl daemon-reload
+            echo "Done"
+            ;;
+        check)
+            if [[ ! -f "$CONFIG_PATH" ]]; then
+                echo "Error: Config file not found: $CONFIG_PATH"
+                exit 1
+            fi
+            echo "Checking dependencies from: $CONFIG_PATH (dry-run)"
+            echo ""
+
+            if ! run_validations "$CONFIG_PATH"; then
+                echo ""
+                echo "Fix validation errors before applying"
+                exit 1
+            fi
+
+            echo ""
+            echo "=== Files to remove ==="
+            clean_dropins true
+            process_config "$CONFIG_PATH" true
+            ;;
+        *)
+            echo "Error: Unknown command '$COMMAND'"
+            usage
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
