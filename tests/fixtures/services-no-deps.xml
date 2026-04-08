@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>standalone-filer</id>
+        <type>filer</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs</run-dir>
+        <filer-args>
+            <port>8888</port>
+        </filer-args>
+    </service>
+</services>

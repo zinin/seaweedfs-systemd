@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://zinin.ru/xml/ns/seaweedfs-systemd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://zinin.ru/xml/ns/seaweedfs-systemd ../../xsd/seaweedfs-systemd.xsd">
+    <service>
+        <id>dotted-server</id>
+        <type>server</type>
+        <run-user>seaweedfs</run-user>
+        <run-group>seaweedfs</run-group>
+        <run-dir>/var/lib/seaweedfs</run-dir>
+        <server-args>
+            <dir>/data</dir>
+            <ip>myhost</ip>
+            <ip.bind>0.0.0.0</ip.bind>
+            <filer>true</filer>
+            <filer.localSocket>/var/lib/seaweedfs/filer.sock</filer.localSocket>
+            <filer.port>10201</filer.port>
+            <master.port>10001</master.port>
+            <master.volumeSizeLimitMB>1000</master.volumeSizeLimitMB>
+            <volume.dir.idx>/data/idx</volume.dir.idx>
+            <volume.max>10000</volume.max>
+            <volume.port>10101</volume.port>
+            <volume.publicUrl>myhost:10101</volume.publicUrl>
+        </server-args>
+    </service>
+</services>
