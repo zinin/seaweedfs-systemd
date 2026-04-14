@@ -1,5 +1,5 @@
 ---
-seaweedfs_version: 4.19
+seaweedfs_version: "4.20"
 seaweedfs_user: seaweedfs
 seaweedfs_group: seaweedfs
 seaweedfs_uid: 2000

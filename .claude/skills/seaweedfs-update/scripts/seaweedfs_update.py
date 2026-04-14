@@ -68,23 +68,27 @@ def get_current_version() -> str | None:
         for line in f:
             match = re.match(r'^seaweedfs_version:\s*(.+)$', line)
             if match:
-                return match.group(1).strip()
+                return match.group(1).strip().strip('"').strip("'")
     return None
 
 
 def update_ansible_version(version: str):
-    """Update seaweedfs_version in ansible/vars/main.yml."""
+    """Update seaweedfs_version in ansible/vars/main.yml.
+
+    The version is always written quoted so YAML preserves trailing zeros
+    (e.g. "4.20" would otherwise be parsed as the float 4.2).
+    """
     with open(ANSIBLE_VARS) as f:
         content = f.read()
     content = re.sub(
         r'^(seaweedfs_version:\s*).*$',
-        rf'\g<1>{version}',
+        rf'\g<1>"{version}"',
         content,
         flags=re.MULTILINE
     )
     with open(ANSIBLE_VARS, 'w') as f:
         f.write(content)
-    print(f"Updated {ANSIBLE_VARS}: seaweedfs_version: {version}")
+    print(f'Updated {ANSIBLE_VARS}: seaweedfs_version: "{version}"')
 
 
 def download_release(tag: str) -> str:
