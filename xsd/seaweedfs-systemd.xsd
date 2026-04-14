@@ -418,6 +418,7 @@
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="debug.fuse" type="xs:boolean" minOccurs="0"/>
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="defaultPermissions" type="xs:boolean" minOccurs="0"/>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
@@ -425,6 +426,7 @@
             <xs:element name="dirIdleEvictSec" type="xs:int" minOccurs="0"/>
             <xs:element name="disableXAttr" type="xs:boolean" minOccurs="0"/>
             <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="dlm" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
             <xs:element name="includeSystemEntries" type="xs:boolean" minOccurs="0"/>
@@ -434,6 +436,7 @@
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="metadataFlushSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="nonempty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="posix.dirNLink" type="xs:boolean" minOccurs="0"/>
             <xs:element name="rdma.enabled" type="xs:boolean" minOccurs="0"/>
             <xs:element name="rdma.fallback" type="xs:boolean" minOccurs="0"/>
             <xs:element name="rdma.maxConcurrent" type="xs:int" minOccurs="0"/>
