@@ -56,3 +56,11 @@ STUB
     # Prepend to PATH so stubs are found before real binaries
     export PATH="${stub_bin}:${PATH}"
 }
+
+# Create a stub weed binary for compare_xsd tests.
+create_compare_xsd_stub_weed() {
+    local stub="${BATS_TEST_TMPDIR}/weed"
+    cp "${PROJECT_ROOT}/tests/helpers/stub-weed-compare-xsd.bash" "$stub"
+    chmod +x "$stub"
+    echo "$stub"
+}

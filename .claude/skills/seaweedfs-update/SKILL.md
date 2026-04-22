@@ -7,7 +7,7 @@ description: Check latest SeaweedFS version on GitHub, download if newer, update
 
 ## Overview
 
-All-in-one skill for updating SeaweedFS: checks the latest release on GitHub, compares with the current version in `ansible/vars/main.yml`, downloads the binary if needed, generates help documentation, and updates the XSD schema.
+All-in-one skill for updating SeaweedFS: checks the latest release on GitHub, compares with the current version in `ansible/vars/main.yml`, downloads the binary if needed, generates help documentation, discovers new commands, classifies them automatically when possible, reruns command classification as needed, and updates the XSD schema.
 
 ## When to Use
 
@@ -51,11 +51,31 @@ Downloads `weed`, updates `seaweedfs_version` in `ansible/vars/main.yml`, genera
 python3 .claude/skills/seaweedfs-update/scripts/compare_xsd.py
 ```
 
-Outputs JSON report with exact list of added, removed, and changed parameters per Args type. This is the source of truth for XSD changes — no manual parsing needed.
+Outputs a JSON report with the exact list of added, removed, and changed parameters per Args type, plus an `unknown_commands` array with structured evidence for any command that is not already in `INCLUDE_COMMANDS` or `EXCLUDE_COMMANDS`.
 
-The script handles command filtering internally (see Command Filter Lists below).
+This JSON report is the source of truth for XSD changes and for unknown-command review — no manual parsing needed.
 
-If a command appears that isn't in either include or exclude list, it is logged as unknown and skipped. Review the output after the run and update the lists in `compare_xsd.py` if needed.
+The script still handles command filtering internally (see Command Filter Lists below), but unknown commands are no longer treated as a silent warning-and-skip case.
+
+### Step 3.5: Classify Unknown Commands
+
+If `unknown_commands` is non-empty, Claude reviews each command using:
+
+- `overview_line`
+- `help_text`
+- parsed `parameters`
+- `has_parameters`
+- `args_type`
+- `element_name`
+
+For each confident decision, Claude updates `INCLUDE_COMMANDS` or `EXCLUDE_COMMANDS` in `compare_xsd.py`, keeps the registry alphabetically ordered, reruns `compare_xsd.py`, and continues the update flow.
+
+For low-confidence decisions:
+
+- Interactive mode: ask the user whether the command belongs in include or exclude, then persist the answer.
+- Non-interactive mode: fail the run and do not create a PR.
+
+Commands without a classification are never silently skipped.
 
 ### Step 4: Apply Changes to XSD
 
@@ -93,9 +113,9 @@ For **new Args types**, the subagent must also:
    xmllint --noout xsd/seaweedfs-systemd.xsd
    ```
 
-2. Validate test fixtures:
+2. Validate positive test fixtures:
    ```bash
-   for f in tests/fixtures/*.xml; do xmllint --noout --schema xsd/seaweedfs-systemd.xsd "$f"; done
+   make validate
    ```
 
 3. Output summary:
@@ -104,6 +124,9 @@ For **new Args types**, the subagent must also:
 
    Version: 4.06 → 4.19
    Commands processed: N
+   New commands discovered: X
+   Classified automatically: cmd1 -> include, cmd2 -> exclude
+   Classification reruns: R
    New Args types created: X
    Parameters added: Y
    Parameters removed: Z
@@ -114,7 +137,7 @@ For **new Args types**, the subagent must also:
 
 ## Command Filter Lists
 
-Maintained in `scripts/compare_xsd.py` as `INCLUDE_COMMANDS` and `EXCLUDE_COMMANDS`.
+`INCLUDE_COMMANDS` and `EXCLUDE_COMMANDS` in `scripts/compare_xsd.py` are the persistent classification registry.
 
 **Include** — long-running services suitable for systemd:
 - `server`, `master`, `master.follower`, `volume`, `filer`, `s3`, `mount`, `webdav`, `sftp`
