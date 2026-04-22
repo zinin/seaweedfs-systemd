@@ -202,6 +202,7 @@
             <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="port.readonly" type="xs:int" minOccurs="0"/>
@@ -212,6 +213,7 @@
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
@@ -279,6 +281,7 @@
             <xs:element name="filerPath" type="xs:string" minOccurs="0"/>
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
             <xs:element name="ignore404Error" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="initialSnapshot" type="xs:boolean" minOccurs="0"/>
             <xs:element name="retentionDays" type="xs:int" minOccurs="0"/>
             <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
         </xs:all>
@@ -353,6 +356,7 @@
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="cacert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="cert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
@@ -436,6 +440,11 @@
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="metadataFlushSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="nonempty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="peer.advertise" type="xs:string" minOccurs="0"/>
+            <xs:element name="peer.dataCenter" type="xs:string" minOccurs="0"/>
+            <xs:element name="peer.enable" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="peer.listen" type="xs:string" minOccurs="0"/>
+            <xs:element name="peer.rack" type="xs:string" minOccurs="0"/>
             <xs:element name="posix.dirNLink" type="xs:boolean" minOccurs="0"/>
             <xs:element name="rdma.enabled" type="xs:boolean" minOccurs="0"/>
             <xs:element name="rdma.fallback" type="xs:boolean" minOccurs="0"/>
@@ -451,6 +460,7 @@
             <xs:element name="umask" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
             <xs:element name="writebackCache" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="writeBufferSizeMB" type="xs:int" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -477,6 +487,7 @@
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
@@ -524,6 +535,7 @@
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
@@ -756,6 +768,7 @@
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
@@ -792,6 +805,7 @@
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
