@@ -7,7 +7,6 @@ Outputs a JSON report of additions, removals, and type changes.
 import json
 import re
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 
 XSD_FILE = "xsd/seaweedfs-systemd.xsd"
@@ -54,12 +53,15 @@ def command_to_element(cmd: str) -> str:
     return cmd.replace(".", "-") + "-args"
 
 
-def parse_weed_help(cmd: str) -> list[dict]:
-    """Parse parameters from ./weed help <cmd>."""
-    result = subprocess.run(
-        ["./weed", "help", cmd], capture_output=True, text=True
-    )
-    output = result.stdout + result.stderr
+def get_command_help(cmd: str) -> str:
+    """Return raw ./weed help output for one command."""
+    result = subprocess.run(["./weed", "help", cmd], capture_output=True, text=True)
+    return result.stdout + result.stderr
+
+
+def parse_weed_help(cmd: str) -> tuple[list[dict], str]:
+    """Parse parameters from ./weed help <cmd> and return raw help text."""
+    output = get_command_help(cmd)
     params = []
 
     for match in re.finditer(
@@ -69,15 +71,10 @@ def parse_weed_help(cmd: str) -> list[dict]:
     ):
         name = match.group(1)
         go_type = match.group(2)
-
-        if go_type:
-            xsd_type = TYPE_MAP.get(go_type, "xs:string")
-        else:
-            xsd_type = "xs:boolean"
-
+        xsd_type = TYPE_MAP.get(go_type, "xs:string") if go_type else "xs:boolean"
         params.append({"name": name, "type": xsd_type})
 
-    return sorted(params, key=lambda p: p["name"])
+    return sorted(params, key=lambda p: p["name"]), output
 
 
 def parse_xsd() -> dict[str, list[dict]]:
@@ -107,11 +104,12 @@ def parse_xsd() -> dict[str, list[dict]]:
     return types
 
 
-def get_available_commands() -> list[str]:
-    """Get all commands from ./weed and warn about unknown ones."""
+def get_available_commands() -> tuple[list[str], dict[str, str]]:
+    """Get all commands from ./weed and their overview lines."""
     result = subprocess.run(["./weed"], capture_output=True, text=True)
     output = result.stdout + result.stderr
     commands = []
+    overview_lines = {}
     in_commands_section = False
 
     for line in output.splitlines():
@@ -119,30 +117,42 @@ def get_available_commands() -> list[str]:
             in_commands_section = True
             continue
         if in_commands_section:
-            match = re.match(r'^\s+(\S+)\s+', line)
+            match = re.match(r'^\s+(\S+)\s+(.*)$', line)
             if match:
-                commands.append(match.group(1))
+                command = match.group(1)
+                description = match.group(2).strip()
+                commands.append(command)
+                overview_lines[command] = f"{command} {description}".strip()
             elif line.strip().startswith("Use ") or (line.strip() == "" and commands):
                 if line.strip().startswith("Use "):
                     break
 
-    unknown = set(commands) - INCLUDE_COMMANDS - EXCLUDE_COMMANDS
-    if unknown:
-        print(f"WARNING: Unknown commands (not in include/exclude): {', '.join(sorted(unknown))}", file=sys.stderr)
-
-    return commands
+    return commands, overview_lines
 
 
 def main():
-    get_available_commands()  # warn about unknown commands
+    commands, overview_lines = get_available_commands()
+
+    unknown_commands = []
+    for cmd in sorted(set(commands) - INCLUDE_COMMANDS - EXCLUDE_COMMANDS):
+        params, help_text = parse_weed_help(cmd)
+        unknown_commands.append({
+            "command": cmd,
+            "overview_line": overview_lines.get(cmd, cmd),
+            "help_text": help_text,
+            "parameters": params,
+            "has_parameters": bool(params),
+            "args_type": command_to_args_type(cmd),
+            "element_name": command_to_element(cmd),
+        })
 
     xsd_types = parse_xsd()
-    report = {"commands": [], "summary": {"added": 0, "removed": 0, "changed": 0, "new_types": 0}}
+    report = {"commands": [], "summary": {"added": 0, "removed": 0, "changed": 0, "new_types": 0}, "unknown_commands": unknown_commands}
 
     for cmd in sorted(INCLUDE_COMMANDS):
         args_type = command_to_args_type(cmd)
         element_name = command_to_element(cmd)
-        weed_params = parse_weed_help(cmd)
+        weed_params, _ = parse_weed_help(cmd)
 
         if not weed_params:
             continue
