@@ -113,9 +113,9 @@ For **new Args types**, the subagent must also:
    xmllint --noout xsd/seaweedfs-systemd.xsd
    ```
 
-2. Validate test fixtures:
+2. Validate positive test fixtures:
    ```bash
-   for f in tests/fixtures/*.xml; do xmllint --noout --schema xsd/seaweedfs-systemd.xsd "$f"; done
+   make validate
    ```
 
 3. Output summary:

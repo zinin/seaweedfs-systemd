@@ -17,8 +17,8 @@ INCLUDE_COMMANDS = {
     "admin", "backup", "filer", "filer.backup", "filer.meta.backup",
     "filer.remote.gateway", "filer.remote.sync", "filer.replicate",
     "filer.sync", "fuse", "iam", "master", "master.follower", "mini",
-    "mount", "mq.broker", "mq.kafka.gateway", "s3", "server", "sftp",
-    "volume", "webdav", "worker",
+    "mount", "mq.broker", "mq.kafka.gateway", "nfs", "s3", "server",
+    "sftp", "volume", "webdav", "worker",
 }
 
 # Commands to exclude (utilities, interactive, informational)

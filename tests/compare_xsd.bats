@@ -19,7 +19,7 @@ setup_compare_xsd_workspace() {
     workdir=$(setup_compare_xsd_workspace)
 
     cd "$workdir"
-    STUB_COMPARE_XSD_MODE="unknown-nfs" run python3 "${PROJECT_ROOT}/.claude/skills/seaweedfs-update/scripts/compare_xsd.py"
+    STUB_COMPARE_XSD_MODE="unknown-cache" run python3 "${PROJECT_ROOT}/.claude/skills/seaweedfs-update/scripts/compare_xsd.py"
 
     [[ "$status" -eq 0 ]]
 
@@ -37,13 +37,14 @@ assert "unknown_commands" in data, data
 unknown = data["unknown_commands"]
 assert len(unknown) == 1, unknown
 item = unknown[0]
-assert item["command"] == "nfs"
-assert item["overview_line"].startswith("nfs ")
-assert "NFS" in item["help_text"]
+assert item["command"] == "cache"
+assert item["overview_line"].startswith("cache ")
+assert "cache warmer service" in item["help_text"]
 assert item["has_parameters"] is True
-assert item["args_type"] == "NfsArgs"
-assert item["element_name"] == "nfs-args"
+assert item["args_type"] == "CacheArgs"
+assert item["element_name"] == "cache-args"
 assert any(p["name"] == "filer" for p in item["parameters"])
+assert any(p["name"] == "capacityMB" for p in item["parameters"])
 PY
 
     [[ "$status" -eq 0 ]]

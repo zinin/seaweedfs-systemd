@@ -1,17 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-mode="${STUB_COMPARE_XSD_MODE:-unknown-nfs}"
+mode="${STUB_COMPARE_XSD_MODE:-unknown-cache}"
 
 if [[ "$#" -eq 0 ]]; then
     case "$mode" in
-        unknown-nfs)
+        unknown-cache)
             cat <<'EOF'
 SeaweedFS: store billions of files and serve them fast!
 
 The commands are:
     server      start a master server, a volume server, and optionally a filer and a S3 gateway
-    nfs         start NFS server backed by SeaweedFS filer
+    cache       start cache warmer service
     shell       run interactive administrative commands
 
 Use "weed help [command]" for more information about a command.
@@ -53,17 +53,17 @@ EOF
     exit 0
 fi
 
-if [[ "$1" == "help" && "$2" == "nfs" ]]; then
+if [[ "$1" == "help" && "$2" == "cache" ]]; then
     cat <<'EOF'
-Usage: weed nfs -filer=localhost:8888 -port=2049
+Usage: weed cache -filer=localhost:8888 -capacityMB=1024
 
-  Start NFS server backed by SeaweedFS filer.
+  Start cache warmer service.
 
 Default Parameters:
+  -capacityMB int
+        cache capacity in megabytes
   -filer string
         filer address
-  -port int
-        nfs port
 EOF
     exit 0
 fi
