@@ -202,7 +202,6 @@
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
-            <xs:element name="mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
@@ -500,7 +499,6 @@
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
-            <xs:element name="filer.mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
@@ -781,7 +779,6 @@
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
-            <xs:element name="filer.mount.p2p" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
