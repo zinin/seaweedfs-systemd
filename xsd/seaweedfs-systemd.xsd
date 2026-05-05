@@ -446,6 +446,8 @@
             <xs:element name="dlm" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="fuse.congestionThreshold" type="xs:int" minOccurs="0"/>
+            <xs:element name="fuse.maxBackground" type="xs:int" minOccurs="0"/>
             <xs:element name="includeSystemEntries" type="xs:boolean" minOccurs="0"/>
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="map.gid" type="xs:string" minOccurs="0"/>
@@ -760,6 +762,7 @@
             <xs:element name="admin.readOnlyUser" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.ui" type="xs:boolean" minOccurs="0"/>
             <xs:element name="admin.user" type="xs:string" minOccurs="0"/>
+            <xs:element name="bucket" type="xs:string" minOccurs="0"/>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
@@ -841,6 +844,7 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
