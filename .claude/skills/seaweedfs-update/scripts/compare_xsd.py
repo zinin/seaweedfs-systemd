@@ -28,6 +28,7 @@ EXCLUDE_COMMANDS = {
     "benchmark", "fix", "export", "upload", "download", "compact", "update",  # one-shot utilities
     "scaffold", "mq.agent",                     # development/client tools
     "filer.cat", "filer.copy", "filer.meta.tail",  # file utilities
+    "filer.sync.verify",                        # one-shot verification utility
 }
 
 # Go type -> XSD type

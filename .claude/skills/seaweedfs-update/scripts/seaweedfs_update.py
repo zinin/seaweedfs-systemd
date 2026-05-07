@@ -32,6 +32,7 @@ def get_latest_release() -> str:
     1. gh CLI (uses GitHub App token in cloud environments)
     2. GitHub API with GITHUB_TOKEN/GH_TOKEN env var
     3. GitHub API unauthenticated (60 req/hr limit)
+    4. /releases/latest HTML redirect (no auth, no rate limit)
     """
     # Try gh CLI first — works in cloud environments with GitHub App auth
     try:
@@ -54,8 +55,29 @@ def get_latest_release() -> str:
         with urlopen(req) as response:
             data = json.loads(response.read().decode())
             return data["tag_name"]
-    except Exception as e:
-        print(f"ERROR: Failed to get latest release: {e}", file=sys.stderr)
+    except Exception as api_err:
+        # Final fallback: parse the HTML redirect from /releases/latest
+        # github.com/<repo>/releases/latest -> github.com/<repo>/releases/tag/<tag>
+        try:
+            from urllib.request import build_opener, HTTPRedirectHandler
+
+            class NoRedirect(HTTPRedirectHandler):
+                def redirect_request(self, req, fp, code, msg, headers, newurl):
+                    return None
+
+            opener = build_opener(NoRedirect())
+            try:
+                opener.open(f"https://github.com/{REPO}/releases/latest")
+            except Exception as redirect_err:
+                location = getattr(redirect_err, "headers", {}).get("Location") if hasattr(redirect_err, "headers") else None
+                if not location and hasattr(redirect_err, "url"):
+                    location = redirect_err.url
+                if location and "/releases/tag/" in location:
+                    return location.rsplit("/releases/tag/", 1)[1].strip()
+                raise
+        except Exception:
+            pass
+        print(f"ERROR: Failed to get latest release: {api_err}", file=sys.stderr)
         print("GitHub API may be rate-limited. Set GITHUB_TOKEN or install gh CLI.", file=sys.stderr)
         sys.exit(1)
 
