@@ -2,3 +2,4 @@
 *.iml
 /help.txt
 /weed
+__pycache__/
