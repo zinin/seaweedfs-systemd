@@ -27,7 +27,7 @@ EXCLUDE_COMMANDS = {
     "shell", "autocomplete", "autocomplete.uninstall",  # interactive
     "benchmark", "fix", "export", "upload", "download", "compact", "update",  # one-shot utilities
     "scaffold", "mq.agent",                     # development/client tools
-    "filer.cat", "filer.copy", "filer.meta.tail",  # file utilities
+    "filer.cat", "filer.copy", "filer.meta.tail", "filer.sync.verify",  # file utilities
 }
 
 # Go type -> XSD type
