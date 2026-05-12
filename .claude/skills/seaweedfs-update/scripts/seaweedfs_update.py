@@ -82,6 +82,40 @@ def get_latest_release() -> str:
         sys.exit(1)
 
 
+def find_existing_open_pr(version: str) -> list[dict]:
+    """Return open PRs whose title is exactly 'chore: update SeaweedFS to <version>'.
+
+    Used to prevent the scheduled routine from opening a second PR while an
+    earlier run's PR is still open. Relies on gh CLI; if gh is unavailable or
+    the call fails, returns an empty list (caller treats this as "no duplicate").
+    """
+    title = f"chore: update SeaweedFS to {version}"
+    try:
+        result = subprocess.run(
+            [
+                "gh", "pr", "list",
+                "--state", "open",
+                "--search", f'in:title "{title}"',
+                "--json", "number,title,headRefName,createdAt,url",
+                "--limit", "50",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"WARN: cannot check existing PRs ({e}); proceeding.", file=sys.stderr)
+        return []
+    if result.returncode != 0:
+        print(f"WARN: gh pr list failed: {result.stderr.strip()}; proceeding.", file=sys.stderr)
+        return []
+    try:
+        prs = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return []
+    # GitHub search may match partial strings (e.g. "4.2" matching "4.23"),
+    # so filter to an exact title match.
+    return [pr for pr in prs if pr.get("title") == title]
+
+
 def get_current_version() -> str | None:
     """Read current version from ansible/vars/main.yml."""
     if not os.path.exists(ANSIBLE_VARS):
@@ -204,6 +238,21 @@ def main():
 
     if current != latest_tag:
         print("Update available!")
+
+        # Prevent duplicate PRs: if a previous run already opened a PR for
+        # the same target version, stop now (unless --force is set).
+        if "--force" not in sys.argv:
+            existing = find_existing_open_pr(latest_tag)
+            if existing:
+                print(f"\nOpen PR(s) already exist for SeaweedFS {latest_tag}:")
+                for pr in existing:
+                    print(
+                        f"  #{pr['number']} {pr.get('url', '')}  "
+                        f"(branch: {pr.get('headRefName', '?')}, created: {pr.get('createdAt', '?')})"
+                    )
+                print("\nSkipping update — merge or close existing PR(s) first, "
+                      "or pass --force to override.")
+                sys.exit(2)
 
     if check_only:
         return

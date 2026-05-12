@@ -28,14 +28,29 @@ All-in-one skill for updating SeaweedFS: checks the latest release on GitHub, co
 
 ## Algorithm
 
-### Step 1: Check Versions
+### Step 1: Check Versions and Existing PRs
 
 ```bash
 python3 .claude/skills/seaweedfs-update/scripts/seaweedfs_update.py --check
 ```
 
-**Interactive mode**: show result, ask user to proceed if versions match.
-**Non-interactive mode**: if versions match — stop. If update available — proceed automatically.
+Exit codes:
+- `0` — already up to date, OR update available and no duplicate PR
+- `2` — update available but an open PR for the same target version already exists
+
+This combined check also lists any open PR titled `chore: update SeaweedFS to <new_version>` (matched exactly) via `gh pr list`. It prevents the scheduled routine from accumulating duplicate PRs when an earlier run already opened one.
+
+**Interactive mode**:
+- Exit 0, "already up to date" — show result, ask user to proceed anyway only if explicitly requested.
+- Exit 0, "update available" — proceed.
+- Exit 2, existing PR found — surface PR number/URL to the user, ask whether to (a) stop, (b) close the stale PR and rerun, or (c) override with `--force`.
+
+**Non-interactive mode** (cloud routine):
+- Exit 0, "already up to date" — stop, no action.
+- Exit 0, "update available" — proceed automatically.
+- Exit 2, existing PR found — stop. Do NOT create a duplicate PR. Log the existing PR number/URL and exit cleanly. A human will review/merge/close the open PR; the next routine run will reassess.
+
+`--force` overrides the duplicate-PR guard for emergency manual reruns.
 
 ### Step 2: Download and Generate Help
 
@@ -217,6 +232,7 @@ Commands without parameters are skipped automatically (no empty Args types).
 | `./weed` not found after download | Check network, retry |
 | `./weed help` fails for a command | Log error, skip command, continue |
 | Invalid XSD after edits | Check XML syntax, fix manually |
+| Existing open PR for target version (exit 2) | Stop — merge/close the PR first, or pass `--force` if intentional |
 
 ## Usage
 
@@ -226,6 +242,10 @@ Commands without parameters are skipped automatically (no empty Args types).
 
 ## Workflow
 
-1. `/seaweedfs-update` — checks version, downloads, updates everything
+1. `/seaweedfs-update` — checks version and open PRs, downloads, updates everything
 2. Review changes: `git diff ansible/vars/main.yml xsd/seaweedfs-systemd.xsd`
 3. Commit changes
+
+## Cloud Routine Idempotency
+
+The scheduled routine MUST be idempotent across days: if version 4.X is announced upstream and the routine opens PR #N, the next day's run sees PR #N still open and exits cleanly without opening PR #N+1. Step 1's `--check` returns exit code 2 in this case; the skill must treat that as a normal "skip" outcome, not a failure. Only when PR #N is merged (master catches up) or closed (someone decided not to bump) does the next run resume work.
