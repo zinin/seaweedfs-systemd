@@ -583,6 +583,7 @@
             <xs:element name="sftp.sshPrivateKey" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.userStoreFile" type="xs:string" minOccurs="0"/>
             <xs:element name="volume" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
@@ -709,6 +710,7 @@
             <xs:element name="readBufferSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="readMode" type="xs:string" minOccurs="0"/>
             <xs:element name="tags" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -845,6 +847,7 @@
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
+            <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
