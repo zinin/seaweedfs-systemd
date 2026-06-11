@@ -140,6 +140,8 @@
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
+            <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnlyPassword" type="xs:string" minOccurs="0"/>
@@ -252,6 +254,7 @@
             <xs:element name="sftp.maxAuthTries" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.port" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.sshPrivateKey" type="xs:string" minOccurs="0"/>
+            <xs:element name="sftp.trustedUserCAKeysFile" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.userStoreFile" type="xs:string" minOccurs="0"/>
             <xs:element name="tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="ui.deleteDir" type="xs:boolean" minOccurs="0"/>
@@ -581,6 +584,7 @@
             <xs:element name="sftp.maxAuthTries" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.port" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.sshPrivateKey" type="xs:string" minOccurs="0"/>
+            <xs:element name="sftp.trustedUserCAKeysFile" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.userStoreFile" type="xs:string" minOccurs="0"/>
             <xs:element name="volume" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
@@ -680,6 +684,8 @@
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="dir.idx" type="xs:string" minOccurs="0"/>
             <xs:element name="disk" type="xs:string" minOccurs="0"/>
+            <xs:element name="ec.bitrotBlockSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="ec.bitrotChecksum" type="xs:boolean" minOccurs="0"/>
             <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="hasSlowRead" type="xs:boolean" minOccurs="0"/>
             <xs:element name="id" type="xs:string" minOccurs="0"/>
@@ -903,6 +909,7 @@
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="sshPrivateKey" type="xs:string" minOccurs="0"/>
+            <xs:element name="trustedUserCAKeysFile" type="xs:string" minOccurs="0"/>
             <xs:element name="userStoreFile" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
