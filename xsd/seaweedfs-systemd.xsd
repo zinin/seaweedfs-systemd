@@ -136,6 +136,7 @@
             <xs:element name="dataDir" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="iceberg.port" type="xs:int" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
@@ -684,8 +685,6 @@
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="dir.idx" type="xs:string" minOccurs="0"/>
             <xs:element name="disk" type="xs:string" minOccurs="0"/>
-            <xs:element name="ec.bitrotBlockSizeMB" type="xs:int" minOccurs="0"/>
-            <xs:element name="ec.bitrotChecksum" type="xs:boolean" minOccurs="0"/>
             <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="hasSlowRead" type="xs:boolean" minOccurs="0"/>
             <xs:element name="id" type="xs:string" minOccurs="0"/>
@@ -769,6 +768,7 @@
             <xs:element name="admin.readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.readOnlyUser" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.ui" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="admin.urlPrefix" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.user" type="xs:string" minOccurs="0"/>
             <xs:element name="bucket" type="xs:string" minOccurs="0"/>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
