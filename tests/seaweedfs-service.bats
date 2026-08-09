@@ -142,12 +142,12 @@ setup() {
 }
 
 # bats test_tags=unit
-@test "type mapping: all 22 types produce valid element names" {
-    local types=(admin backup db filer filer.backup filer.meta.backup
+@test "type mapping: all 21 types produce valid element names" {
+    local types=(admin backup filer filer.backup filer.meta.backup
         filer.remote.gateway filer.remote.sync filer.sync iam master
         master.follower mini mount mq.broker mq.kafka.gateway s3 server
         sftp volume webdav worker)
-    local expected=(admin-args backup-args db-args filer-args filer-backup-args
+    local expected=(admin-args backup-args filer-args filer-backup-args
         filer-meta-backup-args filer-remote-gateway-args filer-remote-sync-args
         filer-sync-args iam-args master-args master-follower-args mini-args
         mount-args mq-broker-args mq-kafka-gateway-args s3-args server-args

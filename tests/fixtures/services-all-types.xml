@@ -19,14 +19,6 @@
         <backup-args><dir>/backup</dir></backup-args>
     </service>
     <service>
-        <id>t-db</id>
-        <type>db</type>
-        <run-user>sw</run-user>
-        <run-group>sw</run-group>
-        <run-dir>/tmp</run-dir>
-        <db-args><port>9002</port></db-args>
-    </service>
-    <service>
         <id>t-filer</id>
         <type>filer</type>
         <run-user>sw</run-user>

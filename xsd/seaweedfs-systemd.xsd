@@ -36,7 +36,6 @@
             <xs:choice>
                 <xs:element name="admin-args" type="tns:AdminArgs"/>
                 <xs:element name="backup-args" type="tns:BackupArgs"/>
-                <xs:element name="db-args" type="tns:DbArgs"/>
                 <xs:element name="filer-args" type="tns:FilerArgs"/>
                 <xs:element name="filer-backup-args" type="tns:FilerBackupArgs"/>
                 <xs:element name="filer-meta-backup-args" type="tns:FilerMetaBackupArgs"/>
@@ -50,7 +49,6 @@
                 <xs:element name="mount-args" type="tns:MountArgs"/>
                 <xs:element name="mq-broker-args" type="tns:MqBrokerArgs"/>
                 <xs:element name="mq-kafka-gateway-args" type="tns:MqKafkaGatewayArgs"/>
-                <xs:element name="nfs-args" type="tns:NfsArgs"/>
                 <xs:element name="s3-args" type="tns:S3Args"/>
                 <xs:element name="server-args" type="tns:ServerArgs"/>
                 <xs:element name="sftp-args" type="tns:SftpArgs"/>
@@ -65,7 +63,6 @@
         <xs:restriction base="xs:string">
             <xs:enumeration value="admin"/>
             <xs:enumeration value="backup"/>
-            <xs:enumeration value="db"/>
             <xs:enumeration value="filer"/>
             <xs:enumeration value="filer.backup"/>
             <xs:enumeration value="filer.meta.backup"/>
@@ -79,7 +76,6 @@
             <xs:enumeration value="mount"/>
             <xs:enumeration value="mq.broker"/>
             <xs:enumeration value="mq.kafka.gateway"/>
-            <xs:enumeration value="nfs"/>
             <xs:enumeration value="s3"/>
             <xs:enumeration value="server"/>
             <xs:enumeration value="sftp"/>
@@ -160,21 +156,6 @@
             <xs:element name="server" type="xs:string" minOccurs="0"/>
             <xs:element name="ttl" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeId" type="xs:int" minOccurs="0"/>
-        </xs:all>
-    </xs:complexType>
-
-    <xs:complexType name="DbArgs">
-        <xs:all>
-            <xs:element name="auth" type="xs:string" minOccurs="0"/>
-            <xs:element name="database" type="xs:string" minOccurs="0"/>
-            <xs:element name="host" type="xs:string" minOccurs="0"/>
-            <xs:element name="idle-timeout" type="xs:duration" minOccurs="0"/>
-            <xs:element name="master" type="xs:string" minOccurs="0"/>
-            <xs:element name="max-connections" type="xs:int" minOccurs="0"/>
-            <xs:element name="port" type="xs:int" minOccurs="0"/>
-            <xs:element name="tls-cert" type="xs:string" minOccurs="0"/>
-            <xs:element name="tls-key" type="xs:string" minOccurs="0"/>
-            <xs:element name="users" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -389,18 +370,6 @@
             <xs:element name="port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
-        </xs:all>
-    </xs:complexType>
-
-    <xs:complexType name="NfsArgs">
-        <xs:all>
-            <xs:element name="allowedClients" type="xs:string" minOccurs="0"/>
-            <xs:element name="filer" type="xs:string" minOccurs="0"/>
-            <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
-            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
-            <xs:element name="port" type="xs:int" minOccurs="0"/>
-            <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
