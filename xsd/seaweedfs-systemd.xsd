@@ -378,6 +378,7 @@
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.readOnly" type="xs:boolean" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="localFilerSocket" type="xs:string" minOccurs="0"/>
@@ -442,6 +443,7 @@
             <xs:element name="debug.fuse" type="xs:boolean" minOccurs="0"/>
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="defaultPermissions" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="df.logical" type="xs:boolean" minOccurs="0"/>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="dirAutoCreate" type="xs:boolean" minOccurs="0"/>
             <xs:element name="dirIdleEvictSec" type="xs:int" minOccurs="0"/>
@@ -478,6 +480,8 @@
             <xs:element name="ttl" type="xs:int" minOccurs="0"/>
             <xs:element name="umask" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
+            <xs:element name="windows.gid" type="xs:int" minOccurs="0"/>
+            <xs:element name="windows.uid" type="xs:int" minOccurs="0"/>
             <xs:element name="writebackCache" type="xs:boolean" minOccurs="0"/>
             <xs:element name="writeBufferSizeMB" type="xs:int" minOccurs="0"/>
         </xs:all>
