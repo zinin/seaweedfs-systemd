@@ -2,6 +2,12 @@
 """
 Compare parameters from ./weed help with current XSD schema.
 Outputs a JSON report of additions, removals, and type changes.
+
+The report also surfaces everything that would otherwise drift silently:
+  removed_commands   — INCLUDE command that no longer exists in this weed build
+  orphan_types       — Args type in the XSD backed by no INCLUDE command
+  unknown_types      — flag whose Go type is missing from TYPE_MAP
+  skipped_no_flags   — INCLUDE command that exists but declares no flags
 """
 
 import json
@@ -30,6 +36,11 @@ EXCLUDE_COMMANDS = {
     "filer.cat", "filer.copy", "filer.meta.tail",  # file utilities
     "filer.sync.verify",                        # one-shot verification utility
 }
+
+# Args types kept in the XSD on purpose even though no weed command backs them.
+# Every entry is a permanent exception to the orphan check — add with care, and
+# only after confirming the type is hand-maintained rather than upstream drift.
+MANUAL_ARGS_TYPES: set[str] = set()
 
 # Go type -> XSD type
 TYPE_MAP = {
@@ -60,22 +71,42 @@ def get_command_help(cmd: str) -> str:
     return result.stdout + result.stderr
 
 
-def parse_weed_help(cmd: str) -> tuple[list[dict], str]:
-    """Parse parameters from ./weed help <cmd> and return raw help text."""
+# A flag declaration is a lone "-name" or "-name <gotype>" on its own line.
+# The name pattern is deliberately strict: it must not swallow example lines
+# such as `-rdma.enabled=true -rdma.sidecar=localhost:8081` found in help text.
+FLAG_RE = re.compile(r"^\s+-([A-Za-z][A-Za-z0-9_.-]*)(?:\s+(\S+))?\s*$", re.MULTILINE)
+
+
+def parse_weed_help(cmd: str) -> tuple[list[dict], str, list[dict]]:
+    """Parse parameters from ./weed help <cmd>.
+
+    Returns (parameters, raw help text, unrecognised Go types). A flag whose Go
+    type is absent from TYPE_MAP still yields a parameter — typed xs:string as a
+    guess — but is reported so the type mapping can be extended deliberately
+    instead of the flag vanishing from the diff.
+    """
     output = get_command_help(cmd)
     params = []
+    unknown_types = []
 
-    for match in re.finditer(
-        r"^\s+-(\S+?)(?:\s+(int64|int|uint|float64|float|string|duration|value))?\s*$",
-        output,
-        re.MULTILINE,
-    ):
+    for match in FLAG_RE.finditer(output):
         name = match.group(1)
         go_type = match.group(2)
-        xsd_type = TYPE_MAP.get(go_type, "xs:string") if go_type else "xs:boolean"
+        if go_type is None:
+            xsd_type = "xs:boolean"
+        elif go_type in TYPE_MAP:
+            xsd_type = TYPE_MAP[go_type]
+        else:
+            xsd_type = "xs:string"
+            unknown_types.append({
+                "command": cmd,
+                "parameter": name,
+                "go_type": go_type,
+                "guessed_type": xsd_type,
+            })
         params.append({"name": name, "type": xsd_type})
 
-    return sorted(params, key=lambda p: p["name"]), output
+    return sorted(params, key=lambda p: p["name"]), output, unknown_types
 
 
 def parse_xsd() -> dict[str, list[dict]]:
@@ -133,10 +164,14 @@ def get_available_commands() -> tuple[list[str], dict[str, str]]:
 
 def main():
     commands, overview_lines = get_available_commands()
+    available = set(commands)
+
+    unknown_types = []
 
     unknown_commands = []
-    for cmd in sorted(set(commands) - INCLUDE_COMMANDS - EXCLUDE_COMMANDS):
-        params, help_text = parse_weed_help(cmd)
+    for cmd in sorted(available - INCLUDE_COMMANDS - EXCLUDE_COMMANDS):
+        params, help_text, cmd_unknown_types = parse_weed_help(cmd)
+        unknown_types.extend(cmd_unknown_types)
         unknown_commands.append({
             "command": cmd,
             "overview_line": overview_lines.get(cmd, cmd),
@@ -148,14 +183,42 @@ def main():
         })
 
     xsd_types = parse_xsd()
-    report = {"commands": [], "summary": {"added": 0, "removed": 0, "changed": 0, "new_types": 0}, "unknown_commands": unknown_commands}
 
-    for cmd in sorted(INCLUDE_COMMANDS):
+    # An INCLUDE command missing from this build was dropped upstream: its Args
+    # type, service-type enum value and choice element are now dead schema.
+    removed_commands = [
+        {
+            "command": cmd,
+            "args_type": command_to_args_type(cmd),
+            "element_name": command_to_element(cmd),
+            "in_xsd": command_to_args_type(cmd) in xsd_types,
+        }
+        for cmd in sorted(INCLUDE_COMMANDS - available)
+    ]
+
+    # An Args type nobody claims: either upstream drift nobody noticed, or a
+    # hand-maintained type that belongs in MANUAL_ARGS_TYPES.
+    expected_types = {command_to_args_type(c) for c in INCLUDE_COMMANDS} | MANUAL_ARGS_TYPES
+    orphan_types = sorted(set(xsd_types) - expected_types)
+
+    report = {
+        "commands": [],
+        "summary": {"added": 0, "removed": 0, "changed": 0, "new_types": 0},
+        "unknown_commands": unknown_commands,
+        "removed_commands": removed_commands,
+        "orphan_types": orphan_types,
+        "unknown_types": unknown_types,
+        "skipped_no_flags": [],
+    }
+
+    for cmd in sorted(INCLUDE_COMMANDS & available):
         args_type = command_to_args_type(cmd)
         element_name = command_to_element(cmd)
-        weed_params, _ = parse_weed_help(cmd)
+        weed_params, _, cmd_unknown_types = parse_weed_help(cmd)
+        unknown_types.extend(cmd_unknown_types)
 
         if not weed_params:
+            report["skipped_no_flags"].append(cmd)
             continue
 
         entry = {
@@ -198,6 +261,12 @@ def main():
 
         if entry["added"] or entry["removed"] or entry["changed"] or entry["is_new"]:
             report["commands"].append(entry)
+
+    report["summary"]["removed_commands"] = len(removed_commands)
+    report["summary"]["orphan_types"] = len(orphan_types)
+    report["summary"]["unknown_types"] = len(unknown_types)
+    report["summary"]["unknown_commands"] = len(unknown_commands)
+    report["summary"]["skipped_no_flags"] = len(report["skipped_no_flags"])
 
     print(json.dumps(report, indent=2))
 
