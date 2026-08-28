@@ -83,5 +83,5 @@ Runs daily via `claude.ai/code/scheduled`. Non-interactive: skips if version unc
 | `uint` | `xs:unsignedInt` |
 | `float` | `xs:float` |
 | `string` | `xs:string` |
-| `duration` | `xs:duration` |
+| `duration` | `tns:GoDuration` — Go syntax (`24h`, `7h30m`), not ISO 8601 |
 | (no type) | `xs:boolean` |
