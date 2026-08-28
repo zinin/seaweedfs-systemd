@@ -266,7 +266,7 @@ Registry hygiene:
 | `float` | `xs:float` |
 | `float64` | `xs:double` |
 | `string` | `xs:string` |
-| `duration` | `xs:duration` |
+| `duration` | `tns:GoDuration` — Go syntax (`24h`, `7h30m`), not ISO 8601 |
 | `value` | `xs:string` |
 | (no type) | `xs:boolean` |
 

@@ -50,7 +50,7 @@ TYPE_MAP = {
     "float": "xs:float",
     "float64": "xs:double",
     "string": "xs:string",
-    "duration": "xs:duration",
+    "duration": "tns:GoDuration",
     "value": "xs:string",
 }
 

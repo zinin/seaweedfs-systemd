@@ -22,6 +22,15 @@
         </xs:keyref>
     </xs:element>
 
+    <!-- Go time.ParseDuration syntax ("24h", "7h30m", "500ms", "1.5s", "0"),
+         not xs:duration (ISO 8601 "P1D"): weed flags accept only Go syntax,
+         so a schema-valid "P1D" would fail at weed startup. -->
+    <xs:simpleType name="GoDuration">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="0|[-+]?([0-9]*\.?[0-9]+(ns|us|ms|s|m|h))+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="ServiceType">
         <xs:sequence>
             <xs:element name="id" type="xs:string"/>
@@ -230,12 +239,12 @@
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.clientAliveCountMax" type="xs:int" minOccurs="0"/>
-            <xs:element name="sftp.clientAliveInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="sftp.clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
-            <xs:element name="sftp.loginGraceTime" type="xs:duration" minOccurs="0"/>
+            <xs:element name="sftp.loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.maxAuthTries" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.port" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.sshPrivateKey" type="xs:string" minOccurs="0"/>
@@ -243,7 +252,7 @@
             <xs:element name="sftp.userStoreFile" type="xs:string" minOccurs="0"/>
             <xs:element name="tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="tusMaxSizeMB" type="xs:int" minOccurs="0"/>
-            <xs:element name="tusSessionExpiry" type="xs:duration" minOccurs="0"/>
+            <xs:element name="tusSessionExpiry" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="webdav" type="xs:boolean" minOccurs="0"/>
             <xs:element name="webdav.cacheCapacityMB" type="xs:int" minOccurs="0"/>
@@ -274,7 +283,7 @@
             <xs:element name="ignore404Error" type="xs:boolean" minOccurs="0"/>
             <xs:element name="initialSnapshot" type="xs:boolean" minOccurs="0"/>
             <xs:element name="retentionDays" type="xs:int" minOccurs="0"/>
-            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+            <xs:element name="timeAgo" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -297,7 +306,7 @@
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
             <xs:element name="include" type="xs:string" minOccurs="0"/>
-            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+            <xs:element name="timeAgo" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -307,7 +316,7 @@
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
             <xs:element name="storageClass" type="xs:string" minOccurs="0"/>
-            <xs:element name="timeAgo" type="xs:duration" minOccurs="0"/>
+            <xs:element name="timeAgo" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -453,7 +462,7 @@
             <xs:element name="rdma.sidecar" type="xs:string" minOccurs="0"/>
             <xs:element name="rdma.timeoutMs" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="readRetryTime" type="xs:duration" minOccurs="0"/>
+            <xs:element name="readRetryTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="replication" type="xs:string" minOccurs="0"/>
             <xs:element name="sys.novncache" type="xs:boolean" minOccurs="0"/>
             <xs:element name="ttl" type="xs:int" minOccurs="0"/>
@@ -495,7 +504,7 @@
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
-            <xs:element name="filer.tusSessionExpiry" type="xs:duration" minOccurs="0"/>
+            <xs:element name="filer.tusSessionExpiry" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
@@ -506,9 +515,9 @@
             <xs:element name="master" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.defaultReplication" type="xs:string" minOccurs="0"/>
             <xs:element name="master.dir" type="xs:string" minOccurs="0"/>
-            <xs:element name="master.electionTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.electionTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="master.garbageThreshold" type="xs:float" minOccurs="0"/>
-            <xs:element name="master.heartbeatInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.heartbeatInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="master.maxParallelVacuumPerServer" type="xs:int" minOccurs="0"/>
             <xs:element name="master.metrics.address" type="xs:string" minOccurs="0"/>
             <xs:element name="master.metrics.intervalSeconds" type="xs:int" minOccurs="0"/>
@@ -567,10 +576,10 @@
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.clientAliveCountMax" type="xs:int" minOccurs="0"/>
-            <xs:element name="sftp.clientAliveInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="sftp.clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
-            <xs:element name="sftp.loginGraceTime" type="xs:duration" minOccurs="0"/>
+            <xs:element name="sftp.loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.maxAuthTries" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.port" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.sshPrivateKey" type="xs:string" minOccurs="0"/>
@@ -589,8 +598,8 @@
             <xs:element name="volume.images.fix.orientation" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.index" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.index.leveldbTimeout" type="xs:int" minOccurs="0"/>
-            <xs:element name="volume.inflightDownloadDataTimeout" type="xs:duration" minOccurs="0"/>
-            <xs:element name="volume.inflightUploadDataTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="volume.inflightDownloadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="volume.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="volume.maintenanceMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.max" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.minFreeSpace" type="xs:string" minOccurs="0"/>
@@ -626,9 +635,9 @@
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="defaultReplication" type="xs:string" minOccurs="0"/>
             <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="electionTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="electionTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="garbageThreshold" type="xs:float" minOccurs="0"/>
-            <xs:element name="heartbeatInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="heartbeatInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="maxParallelVacuumPerServer" type="xs:int" minOccurs="0"/>
@@ -681,8 +690,8 @@
             <xs:element name="images.fix.orientation" type="xs:boolean" minOccurs="0"/>
             <xs:element name="index" type="xs:string" minOccurs="0"/>
             <xs:element name="index.leveldbTimeout" type="xs:int" minOccurs="0"/>
-            <xs:element name="inflightDownloadDataTimeout" type="xs:duration" minOccurs="0"/>
-            <xs:element name="inflightUploadDataTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="inflightDownloadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="maintenanceMBps" type="xs:int" minOccurs="0"/>
@@ -786,16 +795,16 @@
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
-            <xs:element name="filer.tusSessionExpiry" type="xs:duration" minOccurs="0"/>
+            <xs:element name="filer.tusSessionExpiry" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="master.defaultReplication" type="xs:string" minOccurs="0"/>
             <xs:element name="master.dir" type="xs:string" minOccurs="0"/>
-            <xs:element name="master.electionTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.electionTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="master.garbageThreshold" type="xs:float" minOccurs="0"/>
-            <xs:element name="master.heartbeatInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="master.heartbeatInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="master.maxParallelVacuumPerServer" type="xs:int" minOccurs="0"/>
             <xs:element name="master.metrics.address" type="xs:string" minOccurs="0"/>
             <xs:element name="master.metrics.intervalSeconds" type="xs:int" minOccurs="0"/>
@@ -860,8 +869,8 @@
             <xs:element name="volume.images.fix.orientation" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.index" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.index.leveldbTimeout" type="xs:int" minOccurs="0"/>
-            <xs:element name="volume.inflightDownloadDataTimeout" type="xs:duration" minOccurs="0"/>
-            <xs:element name="volume.inflightUploadDataTimeout" type="xs:duration" minOccurs="0"/>
+            <xs:element name="volume.inflightDownloadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="volume.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="volume.maintenanceMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.port" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.port.grpc" type="xs:int" minOccurs="0"/>
@@ -892,13 +901,13 @@
             <xs:element name="authMethods" type="xs:string" minOccurs="0"/>
             <xs:element name="bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="clientAliveCountMax" type="xs:int" minOccurs="0"/>
-            <xs:element name="clientAliveInterval" type="xs:duration" minOccurs="0"/>
+            <xs:element name="clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
-            <xs:element name="loginGraceTime" type="xs:duration" minOccurs="0"/>
+            <xs:element name="loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="maxAuthTries" type="xs:int" minOccurs="0"/>
             <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
@@ -915,14 +924,14 @@
             <xs:element name="admin" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
-            <xs:element name="heartbeat" type="xs:duration" minOccurs="0"/>
+            <xs:element name="heartbeat" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="id" type="xs:string" minOccurs="0"/>
             <xs:element name="jobType" type="xs:string" minOccurs="0"/>
             <xs:element name="maxDetect" type="xs:int" minOccurs="0"/>
             <xs:element name="maxExecute" type="xs:int" minOccurs="0"/>
             <xs:element name="metricsIp" type="xs:string" minOccurs="0"/>
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
-            <xs:element name="reconnect" type="xs:duration" minOccurs="0"/>
+            <xs:element name="reconnect" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="workingDir" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
