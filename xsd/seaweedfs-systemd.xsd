@@ -134,6 +134,7 @@
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="iceberg.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="lance.port" type="xs:int" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
@@ -197,6 +198,7 @@
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
@@ -221,6 +223,7 @@
             <xs:element name="s3.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
@@ -239,6 +242,8 @@
             <xs:element name="sftp.trustedUserCAKeysFile" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.userStoreFile" type="xs:string" minOccurs="0"/>
             <xs:element name="tusBasePath" type="xs:string" minOccurs="0"/>
+            <xs:element name="tusMaxSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="tusSessionExpiry" type="xs:duration" minOccurs="0"/>
             <xs:element name="ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="webdav" type="xs:boolean" minOccurs="0"/>
             <xs:element name="webdav.cacheCapacityMB" type="xs:int" minOccurs="0"/>
@@ -341,6 +346,7 @@
             <xs:element name="allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="autoCreateBucket" type="xs:boolean" minOccurs="0"/>
             <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="cacert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="cert.file" type="xs:string" minOccurs="0"/>
@@ -358,6 +364,8 @@
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
@@ -370,6 +378,7 @@
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="port.iceberg" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.lance" type="xs:int" minOccurs="0"/>
             <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -398,6 +407,7 @@
             <xs:element name="asyncDio" type="xs:boolean" minOccurs="0"/>
             <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="cacheDirMaxEntries" type="xs:int" minOccurs="0"/>
             <xs:element name="cacheDirWrite" type="xs:string" minOccurs="0"/>
             <xs:element name="cacheMetaTtlSec" type="xs:int" minOccurs="0"/>
             <xs:element name="cacheSymlink" type="xs:boolean" minOccurs="0"/>
@@ -484,6 +494,8 @@
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.tusSessionExpiry" type="xs:duration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
@@ -525,6 +537,7 @@
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
@@ -538,6 +551,8 @@
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
@@ -546,6 +561,7 @@
             <xs:element name="s3.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
@@ -769,6 +785,8 @@
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.tusSessionExpiry" type="xs:duration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
@@ -799,6 +817,7 @@
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.cacheCapacityMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.cacert.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.cert.file" type="xs:string" minOccurs="0"/>
@@ -814,6 +833,8 @@
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.localFilerSocket" type="xs:string" minOccurs="0"/>
@@ -824,6 +845,7 @@
             <xs:element name="s3.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
