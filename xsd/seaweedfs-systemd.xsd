@@ -22,12 +22,16 @@
         </xs:keyref>
     </xs:element>
 
-    <!-- Go time.ParseDuration syntax ("24h", "7h30m", "500ms", "1.5s", "0"),
-         not xs:duration (ISO 8601 "P1D"): weed flags accept only Go syntax,
-         so a schema-valid "P1D" would fail at weed startup. -->
+    <!-- Go time.ParseDuration syntax ("24h", "7h30m", "500ms", "1.5s", "+0",
+         "500µs"), not xs:duration (ISO 8601 "P1D"): weed flags accept only Go
+         syntax, so a schema-valid "P1D" would fail at weed startup. -->
     <xs:simpleType name="GoDuration">
         <xs:restriction base="xs:string">
-            <xs:pattern value="0|[-+]?([0-9]*\.?[0-9]+(ns|us|ms|s|m|h))+"/>
+            <!-- units mirror Go's unitMap, incl. both µ spellings (U+00B5 and
+                 U+03BC as character references); the number part requires at
+                 least one digit before or after the dot, as Go does ("1.s"
+                 valid, ".s" invalid) -->
+            <xs:pattern value="[-+]?0|[-+]?(([0-9]+(\.[0-9]*)?|\.[0-9]+)(ns|us|&#181;s|&#956;s|ms|s|m|h))+"/>
         </xs:restriction>
     </xs:simpleType>
 
