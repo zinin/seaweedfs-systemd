@@ -147,6 +147,7 @@
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="iceberg.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="lance.port" type="xs:int" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
@@ -175,6 +176,7 @@
 
     <xs:complexType name="FilerArgs">
         <xs:all>
+            <xs:element name="allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="collection" type="xs:string" minOccurs="0"/>
             <xs:element name="concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
@@ -209,6 +211,7 @@
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
@@ -357,6 +360,7 @@
         <xs:all>
             <xs:element name="allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="autoCreateBucket" type="xs:boolean" minOccurs="0"/>
@@ -459,18 +463,13 @@
             <xs:element name="peer.listen" type="xs:string" minOccurs="0"/>
             <xs:element name="peer.rack" type="xs:string" minOccurs="0"/>
             <xs:element name="posix.dirNLink" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="rdma.enabled" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="rdma.fallback" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="rdma.maxConcurrent" type="xs:int" minOccurs="0"/>
-            <xs:element name="rdma.readOnly" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="rdma.sidecar" type="xs:string" minOccurs="0"/>
-            <xs:element name="rdma.timeoutMs" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
             <xs:element name="readRetryTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="replication" type="xs:string" minOccurs="0"/>
             <xs:element name="sys.novncache" type="xs:boolean" minOccurs="0"/>
             <xs:element name="ttl" type="xs:int" minOccurs="0"/>
             <xs:element name="umask" type="xs:string" minOccurs="0"/>
+            <xs:element name="volumeName" type="xs:string" minOccurs="0"/>
             <xs:element name="volumeServerAccess" type="xs:string" minOccurs="0"/>
             <xs:element name="windows.gid" type="xs:int" minOccurs="0"/>
             <xs:element name="windows.uid" type="xs:int" minOccurs="0"/>
@@ -488,6 +487,7 @@
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
@@ -548,6 +548,7 @@
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
@@ -640,6 +641,7 @@
             <xs:element name="defaultReplication" type="xs:string" minOccurs="0"/>
             <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="electionTimeout" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="garbageThreshold" type="xs:float" minOccurs="0"/>
             <xs:element name="heartbeatInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
@@ -667,6 +669,7 @@
 
     <xs:complexType name="MasterFollowerArgs">
         <xs:all>
+            <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="masters" type="xs:string" minOccurs="0"/>
@@ -779,6 +782,7 @@
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="disableHttp" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
@@ -828,6 +832,7 @@
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.auditLogConfig" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.autoCreateBucket" type="xs:boolean" minOccurs="0"/>
@@ -876,6 +881,7 @@
             <xs:element name="volume.inflightDownloadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="volume.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="volume.maintenanceMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.max" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.port" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.port.public" type="xs:int" minOccurs="0"/>
