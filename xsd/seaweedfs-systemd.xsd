@@ -141,6 +141,7 @@
         <xs:all>
             <xs:element name="adminPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="adminUser" type="xs:string" minOccurs="0"/>
+            <xs:element name="allowInsecureBind" type="xs:boolean" minOccurs="0"/>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataDir" type="xs:string" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
@@ -454,6 +455,7 @@
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="map.gid" type="xs:string" minOccurs="0"/>
             <xs:element name="map.uid" type="xs:string" minOccurs="0"/>
+            <xs:element name="memoryLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="metadataFlushSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="nonempty" type="xs:boolean" minOccurs="0"/>
@@ -465,6 +467,7 @@
             <xs:element name="posix.dirNLink" type="xs:boolean" minOccurs="0"/>
             <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
             <xs:element name="readRetryTime" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="replication" type="xs:string" minOccurs="0"/>
             <xs:element name="sys.novncache" type="xs:boolean" minOccurs="0"/>
             <xs:element name="ttl" type="xs:int" minOccurs="0"/>
