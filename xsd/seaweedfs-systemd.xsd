@@ -241,6 +241,7 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
@@ -397,6 +398,7 @@
             <xs:element name="port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -498,6 +500,7 @@
             <xs:element name="filer.defaultReplicaPlacement" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.dirListLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.disableDirListing" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="filer.disableHttp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.downloadMaxMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
@@ -536,6 +539,8 @@
             <xs:element name="master.resumeState" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.telemetry" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.telemetry.url" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.vacuumDeleteEmptyAfterSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.vacuumIntervalSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="master.volumePreallocate" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
@@ -579,6 +584,7 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
@@ -664,6 +670,8 @@
             <xs:element name="resumeState" type="xs:boolean" minOccurs="0"/>
             <xs:element name="telemetry" type="xs:boolean" minOccurs="0"/>
             <xs:element name="telemetry.url" type="xs:string" minOccurs="0"/>
+            <xs:element name="vacuumDeleteEmptyAfterSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="vacuumIntervalSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="volumePreallocate" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
             <xs:element name="whiteList" type="xs:string" minOccurs="0"/>
@@ -827,6 +835,8 @@
             <xs:element name="master.resumeState" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.telemetry" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.telemetry.url" type="xs:string" minOccurs="0"/>
+            <xs:element name="master.vacuumDeleteEmptyAfterSeconds" type="xs:int" minOccurs="0"/>
+            <xs:element name="master.vacuumIntervalSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="master.volumePreallocate" type="xs:boolean" minOccurs="0"/>
             <xs:element name="master.volumeSizeLimitMB" type="xs:unsignedInt" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
@@ -867,6 +877,7 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
