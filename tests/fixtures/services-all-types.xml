@@ -8,7 +8,7 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <admin-args><port>9001</port></admin-args>
+        <admin-args><port>9001</port><port.legacy>9002</port.legacy></admin-args>
     </service>
     <service>
         <id>t-backup</id>
@@ -24,7 +24,12 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <filer-args><port>8888</port></filer-args>
+        <filer-args>
+            <port>8888</port>
+            <remoteCacheEvictThreshold>0.9</remoteCacheEvictThreshold>
+            <s3.allowBackslashInKey>false</s3.allowBackslashInKey>
+            <s3.iam.selfServiceRequiresGrant>true</s3.iam.selfServiceRequiresGrant>
+        </filer-args>
     </service>
     <service>
         <id>t-filer-backup</id>
@@ -32,7 +37,7 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <filer-backup-args><filer>localhost:8888</filer></filer-backup-args>
+        <filer-backup-args><concurrency>4</concurrency><filer>localhost:8888</filer></filer-backup-args>
     </service>
     <service>
         <id>t-filer-meta-backup</id>
@@ -72,7 +77,26 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <iam-args><master>localhost:9333</master></iam-args>
+        <iam-args><master>localhost:9333</master><selfServiceRequiresGrant>true</selfServiceRequiresGrant></iam-args>
+    </service>
+    <service>
+        <id>t-image</id>
+        <type>image</type>
+        <run-user>sw</run-user>
+        <run-group>sw</run-group>
+        <run-dir>/tmp</run-dir>
+        <image-args>
+            <cacheCapacityMB>64</cacheCapacityMB>
+            <concurrency>8</concurrency>
+            <imgproxy>http://localhost:8080</imgproxy>
+            <ip.bind>127.0.0.1</ip.bind>
+            <maxDimension>4096</maxDimension>
+            <maxResultMB>10</maxResultMB>
+            <maxSourceMB>25</maxSourceMB>
+            <port>8334</port>
+            <source>http://localhost:8333/public-bucket</source>
+            <timeout>15s</timeout>
+        </image-args>
     </service>
     <service>
         <id>t-master</id>
@@ -96,7 +120,19 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <mini-args><dir>/data</dir></mini-args>
+        <mini-args>
+            <admin.allowInsecureBind>false</admin.allowInsecureBind>
+            <admin.port.legacy>9002</admin.port.legacy>
+            <admin.worker.ip>127.0.0.1</admin.worker.ip>
+            <dir>/data</dir>
+            <filer.remoteCacheEvictThreshold>0.9</filer.remoteCacheEvictThreshold>
+            <s3.allowBackslashInKey>false</s3.allowBackslashInKey>
+            <s3.iam.selfServiceRequiresGrant>true</s3.iam.selfServiceRequiresGrant>
+            <volume.compactionMaxParallelCommits>2</volume.compactionMaxParallelCommits>
+            <volume.fsyncBatchWait>5ms</volume.fsyncBatchWait>
+            <volume.fsyncMinBatchBytes>4096</volume.fsyncMinBatchBytes>
+            <volume.fsyncMinBatchRequests>4</volume.fsyncMinBatchRequests>
+        </mini-args>
     </service>
     <service>
         <id>t-mount</id>
@@ -128,7 +164,11 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <s3-args><port>8333</port></s3-args>
+        <s3-args>
+            <allowBackslashInKey>false</allowBackslashInKey>
+            <iam.selfServiceRequiresGrant>true</iam.selfServiceRequiresGrant>
+            <port>8333</port>
+        </s3-args>
     </service>
     <service>
         <id>t-server</id>
@@ -136,7 +176,18 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <server-args><dir>/data</dir></server-args>
+        <server-args>
+            <dir>/data</dir>
+            <filer.remoteCacheEvictThreshold>0.9</filer.remoteCacheEvictThreshold>
+            <s3.allowBackslashInKey>false</s3.allowBackslashInKey>
+            <s3.dataCenter>dc1</s3.dataCenter>
+            <s3.iam.selfServiceRequiresGrant>true</s3.iam.selfServiceRequiresGrant>
+            <sftp.dataCenter>dc1</sftp.dataCenter>
+            <volume.compactionMaxParallelCommits>2</volume.compactionMaxParallelCommits>
+            <volume.fsyncBatchWait>5ms</volume.fsyncBatchWait>
+            <volume.fsyncMinBatchBytes>4096</volume.fsyncMinBatchBytes>
+            <volume.fsyncMinBatchRequests>4</volume.fsyncMinBatchRequests>
+        </server-args>
     </service>
     <service>
         <id>t-sftp</id>
@@ -152,7 +203,13 @@
         <run-user>sw</run-user>
         <run-group>sw</run-group>
         <run-dir>/tmp</run-dir>
-        <volume-args><dir>/data</dir></volume-args>
+        <volume-args>
+            <compactionMaxParallelCommits>2</compactionMaxParallelCommits>
+            <dir>/data</dir>
+            <fsyncBatchWait>5ms</fsyncBatchWait>
+            <fsyncMinBatchBytes>4096</fsyncMinBatchBytes>
+            <fsyncMinBatchRequests>4</fsyncMinBatchRequests>
+        </volume-args>
     </service>
     <service>
         <id>t-webdav</id>
