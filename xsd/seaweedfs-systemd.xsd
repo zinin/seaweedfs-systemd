@@ -56,6 +56,7 @@
                 <xs:element name="filer-remote-sync-args" type="tns:FilerRemoteSyncArgs"/>
                 <xs:element name="filer-sync-args" type="tns:FilerSyncArgs"/>
                 <xs:element name="iam-args" type="tns:IamArgs"/>
+                <xs:element name="image-args" type="tns:ImageArgs"/>
                 <xs:element name="master-args" type="tns:MasterArgs"/>
                 <xs:element name="master-follower-args" type="tns:MasterFollowerArgs"/>
                 <xs:element name="mini-args" type="tns:MiniArgs"/>
@@ -83,6 +84,7 @@
             <xs:enumeration value="filer.remote.sync"/>
             <xs:enumeration value="filer.sync"/>
             <xs:enumeration value="iam"/>
+            <xs:enumeration value="image"/>
             <xs:enumeration value="master"/>
             <xs:enumeration value="master.follower"/>
             <xs:enumeration value="mini"/>
@@ -157,6 +159,7 @@
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="port.legacy" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="readOnlyUser" type="xs:string" minOccurs="0"/>
             <xs:element name="urlPrefix" type="xs:string" minOccurs="0"/>
@@ -209,7 +212,9 @@
             <xs:element name="port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="port.readonly" type="xs:int" minOccurs="0"/>
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
+            <xs:element name="remoteCacheEvictThreshold" type="xs:float" minOccurs="0"/>
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowBackslashInKey" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
@@ -230,6 +235,7 @@
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.iam.selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
@@ -279,6 +285,7 @@
 
     <xs:complexType name="FilerBackupArgs">
         <xs:all>
+            <xs:element name="concurrency" type="xs:int" minOccurs="0"/>
             <xs:element name="debug" type="xs:boolean" minOccurs="0"/>
             <xs:element name="disableErrorRetry" type="xs:boolean" minOccurs="0"/>
             <xs:element name="doDeleteFiles" type="xs:boolean" minOccurs="0"/>
@@ -360,6 +367,7 @@
 
     <xs:complexType name="S3Args">
         <xs:all>
+            <xs:element name="allowBackslashInKey" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
@@ -383,6 +391,7 @@
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iam.selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
@@ -511,6 +520,7 @@
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.remoteCacheEvictThreshold" type="xs:float" minOccurs="0"/>
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
@@ -554,6 +564,7 @@
             <xs:element name="mq.broker.port" type="xs:int" minOccurs="0"/>
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowBackslashInKey" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowEmptyFolder" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
@@ -566,6 +577,7 @@
             <xs:element name="s3.concurrentFileUploadLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.config" type="xs:string" minOccurs="0"/>
+            <xs:element name="s3.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.defaultFileMode" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.domainName" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
@@ -573,6 +585,7 @@
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.iam.selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
@@ -591,6 +604,7 @@
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.clientAliveCountMax" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
@@ -602,11 +616,15 @@
             <xs:element name="volume" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.compactionMaxParallelCommits" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.dir.idx" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.fileSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.fsyncBatchWait" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="volume.fsyncMinBatchBytes" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.fsyncMinBatchRequests" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.hasSlowRead" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.id" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.images.fix.orientation" type="xs:boolean" minOccurs="0"/>
@@ -692,6 +710,7 @@
     <xs:complexType name="VolumeArgs">
         <xs:all>
             <xs:element name="compactionMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="compactionMaxParallelCommits" type="xs:int" minOccurs="0"/>
             <xs:element name="concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
@@ -702,6 +721,9 @@
             <xs:element name="dir.idx" type="xs:string" minOccurs="0"/>
             <xs:element name="disk" type="xs:string" minOccurs="0"/>
             <xs:element name="fileSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="fsyncBatchWait" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="fsyncMinBatchBytes" type="xs:int" minOccurs="0"/>
+            <xs:element name="fsyncMinBatchRequests" type="xs:int" minOccurs="0"/>
             <xs:element name="hasSlowRead" type="xs:boolean" minOccurs="0"/>
             <xs:element name="id" type="xs:string" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
@@ -776,16 +798,19 @@
 
     <xs:complexType name="MiniArgs">
         <xs:all>
+            <xs:element name="admin.allowInsecureBind" type="xs:boolean" minOccurs="0"/>
             <xs:element name="admin.dataDir" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.master" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.password" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.port" type="xs:int" minOccurs="0"/>
             <xs:element name="admin.port.grpc" type="xs:int" minOccurs="0"/>
+            <xs:element name="admin.port.legacy" type="xs:int" minOccurs="0"/>
             <xs:element name="admin.readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.readOnlyUser" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.ui" type="xs:boolean" minOccurs="0"/>
             <xs:element name="admin.urlPrefix" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.user" type="xs:string" minOccurs="0"/>
+            <xs:element name="admin.worker.ip" type="xs:string" minOccurs="0"/>
             <xs:element name="bucket" type="xs:string" minOccurs="0"/>
             <xs:element name="cpuprofile" type="xs:string" minOccurs="0"/>
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
@@ -811,6 +836,7 @@
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.grpc" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port.public" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.remoteCacheEvictThreshold" type="xs:float" minOccurs="0"/>
             <xs:element name="filer.saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusBasePath" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
@@ -844,6 +870,7 @@
             <xs:element name="metricsPort" type="xs:int" minOccurs="0"/>
             <xs:element name="rack" type="xs:string" minOccurs="0"/>
             <xs:element name="s3" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.allowBackslashInKey" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowDeleteBucketNotEmpty" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.allowedOrigins" type="xs:string" minOccurs="0"/>
@@ -864,6 +891,7 @@
             <xs:element name="s3.iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.iam.selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
@@ -882,11 +910,15 @@
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.compactionMaxParallelCommits" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentDownloadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.concurrentUploadLimitMB" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.dir.idx" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.fileSizeLimitMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.fsyncBatchWait" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="volume.fsyncMinBatchBytes" type="xs:int" minOccurs="0"/>
+            <xs:element name="volume.fsyncMinBatchRequests" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.hasSlowRead" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.id" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.images.fix.orientation" type="xs:boolean" minOccurs="0"/>
@@ -965,6 +997,22 @@
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:complexType name="ImageArgs">
+        <xs:all>
+            <xs:element name="cacheCapacityMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="concurrency" type="xs:int" minOccurs="0"/>
+            <xs:element name="imgproxy" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
+            <xs:element name="maxDimension" type="xs:int" minOccurs="0"/>
+            <xs:element name="maxResultMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="maxSourceMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="source" type="xs:string" minOccurs="0"/>
+            <xs:element name="timeout" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 </xs:schema>

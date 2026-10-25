@@ -14,6 +14,22 @@ setup_compare_xsd_workspace() {
 }
 
 # bats test_tags=unit
+@test "compare_xsd.py: includes image gateway as a systemd service" {
+    run python3 - "${PROJECT_ROOT}/.claude/skills/seaweedfs-update/scripts/compare_xsd.py" <<'PY'
+import runpy
+import sys
+
+registry = runpy.run_path(sys.argv[1])
+assert "image" in registry["INCLUDE_COMMANDS"]
+assert "image" not in registry["EXCLUDE_COMMANDS"]
+assert registry["command_to_args_type"]("image") == "ImageArgs"
+assert registry["command_to_element"]("image") == "image-args"
+PY
+
+    [[ "$status" -eq 0 ]]
+}
+
+# bats test_tags=unit
 @test "compare_xsd.py: reports unknown command with structured evidence" {
     local workdir
     workdir=$(setup_compare_xsd_workspace)
