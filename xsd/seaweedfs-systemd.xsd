@@ -344,6 +344,7 @@
             <xs:element name="debug.port" type="xs:int" minOccurs="0"/>
             <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="logFlushInterval" type="xs:int" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="memprofile" type="xs:string" minOccurs="0"/>
@@ -995,6 +996,7 @@
         <xs:all>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
+            <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
             <xs:element name="port" type="xs:int" minOccurs="0"/>
             <xs:element name="selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
