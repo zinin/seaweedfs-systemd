@@ -199,8 +199,10 @@
             <xs:element name="exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="iam.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="iam.ip" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
@@ -257,6 +259,7 @@
             <xs:element name="sftp.clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
+            <xs:element name="sftp.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
@@ -276,6 +279,7 @@
             <xs:element name="webdav.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
@@ -299,6 +303,7 @@
             <xs:element name="ignore404Error" type="xs:boolean" minOccurs="0"/>
             <xs:element name="initialSnapshot" type="xs:boolean" minOccurs="0"/>
             <xs:element name="retentionDays" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.flattenVersions" type="xs:boolean" minOccurs="0"/>
             <xs:element name="timeAgo" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -422,6 +427,7 @@
             <xs:element name="disk" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="maxMB" type="xs:int" minOccurs="0"/>
@@ -516,6 +522,7 @@
             <xs:element name="filer.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
@@ -529,6 +536,7 @@
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
+            <xs:element name="iam.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="iam.port" type="xs:int" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
@@ -607,6 +615,7 @@
             <xs:element name="sftp.clientAliveInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.hostKeysFolder" type="xs:string" minOccurs="0"/>
+            <xs:element name="sftp.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp.maxAuthTries" type="xs:int" minOccurs="0"/>
@@ -653,6 +662,7 @@
             <xs:element name="webdav.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
@@ -832,6 +842,7 @@
             <xs:element name="filer.encryptVolumeData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
+            <xs:element name="filer.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
@@ -945,6 +956,7 @@
             <xs:element name="webdav.collection" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.disk" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.filer.path" type="xs:string" minOccurs="0"/>
+            <xs:element name="webdav.idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="webdav.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="webdav.port" type="xs:int" minOccurs="0"/>
@@ -962,6 +974,7 @@
             <xs:element name="dataCenter" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="hostKeysFolder" type="xs:string" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="loginGraceTime" type="tns:GoDuration" minOccurs="0"/>
@@ -995,6 +1008,7 @@
     <xs:complexType name="IamArgs">
         <xs:all>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
+            <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="master" type="xs:string" minOccurs="0"/>
