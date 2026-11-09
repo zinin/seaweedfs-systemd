@@ -141,6 +141,7 @@
 
     <xs:complexType name="AdminArgs">
         <xs:all>
+            <xs:element name="adminLock.fairnessWindow" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="adminPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="adminUser" type="xs:string" minOccurs="0"/>
             <xs:element name="allowInsecureBind" type="xs:boolean" minOccurs="0"/>
@@ -162,6 +163,7 @@
             <xs:element name="port.legacy" type="xs:int" minOccurs="0"/>
             <xs:element name="readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="readOnlyUser" type="xs:string" minOccurs="0"/>
+            <xs:element name="uploadMaxSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="urlPrefix" type="xs:string" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -333,9 +335,11 @@
 
     <xs:complexType name="FilerRemoteSyncArgs">
         <xs:all>
+            <xs:element name="allMounts" type="xs:boolean" minOccurs="0"/>
             <xs:element name="dir" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerProxy" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="mountsCheckInterval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="storageClass" type="xs:string" minOccurs="0"/>
             <xs:element name="timeAgo" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
@@ -819,6 +823,7 @@
             <xs:element name="admin.readOnlyPassword" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.readOnlyUser" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.ui" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="admin.uploadMaxSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="admin.urlPrefix" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.user" type="xs:string" minOccurs="0"/>
             <xs:element name="admin.worker.ip" type="xs:string" minOccurs="0"/>
