@@ -101,8 +101,9 @@ server_ready_ports() {
     echo "${ports[*]}"
 }
 
-# Seconds a server may take to listen on its ports: SEAWEEDFS_READY_TIMEOUT, default 45.
-# With the 3.5 s before the wait and the XML parsing it stays below the unit's
+# Seconds a server may take to become ready — its ports, then its master's leader and
+# volumes, one budget for both: SEAWEEDFS_READY_TIMEOUT, default 45. With the 3.5 s
+# before the wait, the XML parsing and the last pass it stays below the unit's
 # TimeoutStartSec=60. Anything but whole seconds falls back to 45 with a warning.
 ready_timeout() {
     local timeout=${SEAWEEDFS_READY_TIMEOUT:-45}
@@ -156,6 +157,195 @@ wait_for_ports() {
     done
 }
 
+# Value of -NAME= in ARGS (the last one wins, as in weed), else DEFAULT
+server_arg() {
+    local name=$1 value=$2 arg
+    for arg in "${ARGS[@]}"; do
+        if [[ "$arg" == "-$name="* ]]; then
+            value=${arg#*=}
+        fi
+    done
+    echo "$value"
+}
+
+# Address to reach a server's HTTP ports: its -ip.bind, 127.0.0.1 when it binds all
+# addresses, and -ip when -ip.bind is empty (weed then binds to the -ip address)
+server_http_host() {
+    local bind
+    bind=$(server_arg ip.bind "")
+    if [[ -z "$bind" ]]; then
+        bind=$(server_arg ip "")
+    fi
+    case "$bind" in
+        "" | 0.0.0.0 | :: | "[::]") echo "127.0.0.1" ;;
+        *:*) echo "[$bind]" ;;
+        *) echo "$bind" ;;
+    esac
+}
+
+# GET URL for the readiness probes: the body on stdout; returns 0 on HTTP 200, 2 if the
+# server refuses (401 or 403, e.g. a -whiteList without this address), 1 otherwise.
+# -q (it must come first) skips ~/.curlrc and --noproxy '*' any proxy: the probes go
+# to this host, and a proxy that answers 403 would make every start wait the timeout.
+http_get() {
+    local out code
+    out=$(curl -q --noproxy '*' -s -m 2 -w '\n%{http_code}' "$1" 2>/dev/null) || return 1
+    code=${out##*$'\n'}
+    out=${out%$'\n'*}
+    case "$code" in
+        200) printf '%s' "$out" ;;
+        401 | 403) return 2 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Does /cluster/status of the master at HOST:PORT name a raft leader?
+# Returns 0 if yes, 1 if not (yet), 2 if the master refuses the probe.
+master_has_leader() {
+    local host=$1 port=$2 status rc=0
+    status=$(http_get "http://${host}:${port}/cluster/status") || rc=$?
+    if (( rc != 0 )); then
+        return "$rc"
+    fi
+    [[ "$status" =~ \"Leader\":\"[^\"]+\" ]]
+}
+
+# Number of volumes in a volume server's /status JSON on stdin; -1 if it is not that JSON
+count_local_volumes() {
+    python3 -c '
+import json, sys
+try:
+    print(len(json.load(sys.stdin).get("Volumes") or []))
+except (ValueError, AttributeError):
+    print(-1)
+'
+}
+
+# Volumes the master knows for the volume server ID, from /dir/status JSON on stdin;
+# -1 if it is not registered. ID is the node's Url (host:port), or ":port" for any node
+# on that port.
+count_master_volumes() {
+    python3 -c '
+import json, sys
+want = sys.argv[1]
+def matches(url):
+    return url.endswith(want) if want.startswith(":") else url == want
+try:
+    topology = json.load(sys.stdin).get("Topology") or {}
+except (ValueError, AttributeError):
+    print(-1)
+    sys.exit(0)
+for dc in topology.get("DataCenters") or []:
+    for rack in dc.get("Racks") or []:
+        for node in rack.get("DataNodes") or []:
+            if matches(str(node.get("Url", ""))):
+                print(int(node.get("Volumes") or 0))
+                sys.exit(0)
+print(-1)
+' "$1"
+}
+
+# Does the master at HOST:MASTER_PORT know all volumes of the volume server at
+# HOST:VOLUME_PORT? Until it does, reads of those volumes fail with "volume N not found".
+# VOLUME_ID is the volume server's Url in the master's topology (-ip:port in weed server);
+# without it any node on VOLUME_PORT counts. Returns 0 if yes, 1 if not (yet), 2 if the
+# master or the volume server refuses the probe.
+volume_registered() {
+    local host=$1 master_port=$2 volume_port=$3 volume_id=${4:-:$3}
+    local status topology local_count master_count rc=0
+    status=$(http_get "http://${host}:${volume_port}/status") || rc=$?
+    if (( rc != 0 )); then
+        return "$rc"
+    fi
+    topology=$(http_get "http://${host}:${master_port}/dir/status") || rc=$?
+    if (( rc != 0 )); then
+        return "$rc"
+    fi
+    local_count=$(count_local_volumes <<< "$status")
+    master_count=$(count_master_volumes "$volume_id" <<< "$topology")
+    [[ "$local_count" -ge 0 && "$master_count" -ge "$local_count" ]]
+}
+
+# A server's data is readable only once its master has a raft leader and knows the
+# volumes of its volume server. Until then a read through weed mount fails with
+# "volume N not found", and after three such failures the mount stops asking the filer
+# for 30 s: on a reboot on 2026-11-11 nginx could not read its certificates for 45 s
+# although every port listened. Waits for both within the same ready_timeout as the
+# ports, counted from START_US (EPOCHREALTIME without its separator); exits 1 if weed
+# dies. Nothing to wait for without a master of its own, or if the master refuses the
+# probes (401/403).
+wait_for_server_data() {
+    local pid=$1 start_us=$2
+    if ! is_true "$(server_arg master true)"; then
+        return 0
+    fi
+    local cmd
+    for cmd in curl python3; do
+        if ! command -v "$cmd" &>/dev/null; then
+            echo "Warning: $cmd not found, not waiting for the master leader and volumes"
+            return 0
+        fi
+    done
+
+    local timeout host ip master_port volume_port volume_id with_volume=false
+    local leader=unknown waited rc
+    timeout=$(ready_timeout)
+    host=$(server_http_host)
+    master_port=$(server_arg master.port 9333)
+    volume_port=$(server_arg volume.port 8080)
+    # weed server registers its volume server as -ip:port; without -ip weed uses an
+    # address it detects, so any node on the port counts
+    ip=$(server_arg ip "")
+    case "$ip" in
+        "") volume_id=":${volume_port}" ;;
+        *:*) volume_id="[${ip}]:${volume_port}" ;;
+        *) volume_id="${ip}:${volume_port}" ;;
+    esac
+    if is_true "$(server_arg volume true)"; then
+        with_volume=true
+    fi
+    while true; do
+        # the deadline first: if the ports took the whole budget, no more probes
+        waited=$(( (${EPOCHREALTIME/[.,]/} - start_us) / 1000000 ))
+        if (( waited >= timeout )); then
+            case "$leader" in
+                true) echo "Warning: master does not know all volumes of the volume server $volume_id after ${timeout}s; reporting ready anyway" ;;
+                false) echo "Warning: master has no leader after ${timeout}s; reporting ready anyway" ;;
+                *) echo "Warning: no time left after the ports to wait for the master leader and volumes; reporting ready anyway" ;;
+            esac
+            return 0
+        fi
+
+        leader=false
+        rc=0
+        master_has_leader "$host" "$master_port" || rc=$?
+        if (( rc == 0 )); then
+            leader=true
+            if [[ "$with_volume" == "true" ]]; then
+                volume_registered "$host" "$master_port" "$volume_port" "$volume_id" || rc=$?
+            fi
+        fi
+        if (( rc == 2 )); then
+            echo "Warning: master or volume server at $host refuses the readiness probes (HTTP 401/403, -whiteList?); not waiting for the master leader and volumes"
+            return 0
+        fi
+        if (( rc == 0 )); then
+            waited=$(( (${EPOCHREALTIME/[.,]/} - start_us) / 1000000 ))
+            if [[ "$with_volume" == "true" ]]; then
+                echo "Master has a leader and knows the volumes after ${waited}s"
+            else
+                echo "Master has a leader after ${waited}s"
+            fi
+            return 0
+        fi
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "Error: weed process died while waiting for the master"
+            exit 1
+        fi
+        sleep 1
+    done
+}
+
 # Wait for service to be ready and send systemd notification
 wait_for_ready() {
     local pid=$1
@@ -202,14 +392,18 @@ wait_for_ready() {
             echo "Error: weed process died before ready"
             exit 1
         fi
-        # A server is ready once its master, volume and filer listen: units ordered
-        # after it (mount, filer.sync) connect to them right away
+        # A server is ready once its master, volume and filer listen and its master has
+        # a leader and knows the volumes: units ordered after it (mount, filer.sync)
+        # connect right away, and reads through the mount find the volumes.
+        # Both waits share one ready_timeout.
         if [[ "$service_type" == "server" ]]; then
+            local start_us=${EPOCHREALTIME/[.,]/}
             local -a ports
             read -r -a ports <<< "$(server_ready_ports)"
             if [[ ${#ports[@]} -gt 0 ]]; then
                 wait_for_ports "$pid" "${ports[@]}"
             fi
+            wait_for_server_data "$pid" "$start_us"
         fi
         systemd-notify --ready
     fi
