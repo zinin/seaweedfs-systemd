@@ -53,23 +53,31 @@ exit 0
 STUB
     chmod +x "$stub_bin/systemd-notify"
 
-    # curl stub: answers http://HOST:PORT/PATH with the file STUB_CURL_DIR/PORT/PATH,
-    # exits 7 (connection refused) if there is none. STUB_CURL_CALLS names a file
-    # that gets the URL of every call.
+    # curl stub: answers http://HOST:PORT/PATH with the file STUB_CURL_DIR/PORT/PATH and
+    # HTTP code 200, or the code in PATH.code next to it; exits 7 (connection refused)
+    # if there is no such file. Honours -w with %{http_code} and \n. STUB_CURL_CALLS
+    # names a file that gets the URL of every call, STUB_CURL_ARGS one that gets all args.
     cat > "$stub_bin/curl" <<'STUB'
 #!/bin/bash
-url=""
+url="" format="" prev=""
 for a in "$@"; do
     case "$a" in http://*) url=$a ;; esac
+    [[ "$prev" == "-w" ]] && format=$a
+    prev=$a
 done
 [[ -n "${STUB_CURL_CALLS:-}" ]] && echo "$url" >> "$STUB_CURL_CALLS"
+[[ -n "${STUB_CURL_ARGS:-}" ]] && echo "$*" >> "$STUB_CURL_ARGS"
 rest=${url#http://}
 hostport=${rest%%/*}
 path=/${rest#*/}
 port=${hostport##*:}
 file="${STUB_CURL_DIR:-/nonexistent}/${port}${path}"
 [[ -f "$file" ]] || exit 7
+code=200
+[[ -f "$file.code" ]] && code=$(cat "$file.code")
 cat "$file"
+[[ -n "$format" ]] && printf '%b' "${format//%\{http_code\}/$code}"
+exit 0
 STUB
     chmod +x "$stub_bin/curl"
 

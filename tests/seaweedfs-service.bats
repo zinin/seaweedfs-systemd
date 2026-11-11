@@ -409,7 +409,7 @@ setup() {
     ARGS=(-master.port=10001 -volume.port=10101 -filer=true)
     run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
     [[ "$status" -eq 0 ]]
-    [[ "$output" == *"Master has a leader and knows the volumes after 0s"* ]]
+    [[ "$output" =~ Master\ has\ a\ leader\ and\ knows\ the\ volumes\ after\ [01]s ]]
     [[ "$output" != *"Warning"* ]]
 }
 
@@ -424,7 +424,7 @@ setup() {
     ARGS=(-master.port=10001 -volume.port=10101)
     run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
     [[ "$status" -eq 0 ]]
-    [[ "$output" =~ Master\ has\ a\ leader\ and\ knows\ the\ volumes\ after\ [2-9]s ]]
+    [[ "$output" =~ Master\ has\ a\ leader\ and\ knows\ the\ volumes\ after\ [3-9]s ]]
     [[ "$output" != *"Warning"* ]]
 }
 
@@ -442,7 +442,7 @@ setup() {
     stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 2 3
     run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
     [[ "$status" -eq 0 ]]
-    [[ "$output" == *"Warning: master does not know all volumes of 127.0.0.1:10101 after 1s; reporting ready anyway"* ]]
+    [[ "$output" == *"Warning: master does not know all volumes of the volume server :10101 after 1s; reporting ready anyway"* ]]
 }
 
 # bats test_tags=unit
@@ -452,13 +452,15 @@ setup() {
     export SEAWEEDFS_READY_TIMEOUT=3
     ARGS=(-master.port=10001 -volume.port=10101)
     stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 3
-    # the ports already took 5 s of the 3 s budget: give up at the first check
+    export STUB_CURL_CALLS="${BATS_TEST_TMPDIR}/curl-calls"
+    # the ports already took 5 s of the 3 s budget: give up without probing
     local start=$(( ${EPOCHREALTIME/[.,]/} - 5000000 ))
     SECONDS=0
     run wait_for_server_data $$ "$start"
     [[ "$status" -eq 0 ]]
-    [[ "$output" == *"Warning: master has no leader after 3s"* ]]
+    [[ "$output" == *"Warning: no time left after the ports to wait for the master leader and volumes; reporting ready anyway"* ]]
     (( SECONDS <= 1 ))
+    [[ ! -s "$STUB_CURL_CALLS" ]]
 }
 
 # bats test_tags=unit
@@ -501,6 +503,89 @@ setup() {
     run bash -c 'source "$1"; ARGS=(-master.port=10001); PATH=/nonexistent; wait_for_server_data $$ 0' _ "${DIST_DIR}/seaweedfs-service.sh"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"Warning: curl not found, not waiting for the master leader and volumes"* ]]
+}
+
+# bats test_tags=unit
+@test "readiness probes skip ~/.curlrc and proxies: they go to this host" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export STUB_CURL_ARGS="${BATS_TEST_TMPDIR}/curl-args"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 1 1
+    run master_has_leader 127.0.0.1 10001
+    [[ "$status" -eq 0 ]]
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -eq 0 ]]
+    [[ "$(wc -l < "$STUB_CURL_ARGS")" -eq 3 ]]
+    local line
+    while IFS= read -r line; do
+        [[ "$line" == "-q "* ]] || { echo "not -q first: $line"; false; }
+        [[ "$line" == *" --noproxy * "* ]] || { echo "no --noproxy: $line"; false; }
+    done < "$STUB_CURL_ARGS"
+}
+
+# bats test_tags=unit
+@test "master_has_leader and volume_registered: 401 or 403 means the probe is refused (2)" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 1 1
+    echo 401 > "$STUB_CURL_DIR/10001/dir/status.code"
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -eq 2 ]]
+    echo 403 > "$STUB_CURL_DIR/10001/cluster/status.code"
+    run master_has_leader 127.0.0.1 10001
+    [[ "$status" -eq 2 ]]
+    # other errors are just "not yet"
+    echo 500 > "$STUB_CURL_DIR/10001/cluster/status.code"
+    run master_has_leader 127.0.0.1 10001
+    [[ "$status" -eq 1 ]]
+}
+
+# bats test_tags=unit
+@test "volume_registered: with an id the volume server is found by its full Url, not by the port" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" none 3
+    local topo='{"Topology":{"DataCenters":[{"Racks":[{"DataNodes":[%s]}]}]}}'
+    # another host's volume server on the same port has the volumes, ours is not registered
+    printf "$topo" '{"Url":"other:10101","Volumes":5}' > "$STUB_CURL_DIR/10001/dir/status"
+    run volume_registered 127.0.0.1 10001 10101 srv:10101
+    [[ "$status" -eq 1 ]]
+    # without an id any node on the port counts
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -eq 0 ]]
+    # ours registered after the other one, with fewer volumes than the other
+    printf "$topo" '{"Url":"other:10101","Volumes":1},{"Url":"srv:10101","Volumes":3}' > "$STUB_CURL_DIR/10001/dir/status"
+    run volume_registered 127.0.0.1 10001 10101 srv:10101
+    [[ "$status" -eq 0 ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: looks for its volume server as -ip:port" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=1
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" none 3
+    printf '{"Topology":{"DataCenters":[{"Racks":[{"DataNodes":[{"Url":"other:10101","Volumes":3}]}]}]}}' \
+        > "$STUB_CURL_DIR/10001/dir/status"
+    ARGS=(-ip=srv -ip.bind=0.0.0.0 -master.port=10001 -volume.port=10101)
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: master does not know all volumes of the volume server srv:10101 after 1s"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: a master that refuses the probes (-whiteList) is not waited for" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=10
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 3 3
+    echo 401 > "$STUB_CURL_DIR/10001/dir/status.code"
+    ARGS=(-master.port=10001 -volume.port=10101)
+    SECONDS=0
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: master or volume server at 127.0.0.1 refuses the readiness probes (HTTP 401/403, -whiteList?); not waiting for the master leader and volumes"* ]]
+    (( SECONDS <= 2 ))
 }
 
 # --- Integration tests ---
@@ -646,7 +731,7 @@ make_tmp_fixture() {
     setup_integration
     create_stub_weed
     export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
-    export STUB_WEED_SLEEP=12
+    export STUB_WEED_SLEEP=20
     export STUB_NOTIFY_LOG="${BATS_TEST_TMPDIR}/notify.log"
     export STUB_SS_LISTEN="0.0.0.0:9333 [::]:19333 0.0.0.0:8080 [::]:18080"
     export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
