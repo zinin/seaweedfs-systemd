@@ -49,7 +49,8 @@ xmllint --noout --schema xsd/seaweedfs-systemd.xsd /etc/seaweedfs/services.xml
 
 - `xmlstarlet` — XML parsing
 - `xmllint` (libxml2-utils) — XSD validation
-- `python3` — update scripts
+- `python3` — update scripts; at runtime, with `curl`, the readiness of `server` units (master leader and volume registration)
+- `ss` (iproute2) — readiness of `server` units (listening ports)
 
 In CI/cloud environments, install missing deps first:
 ```bash

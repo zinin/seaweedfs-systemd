@@ -324,6 +324,185 @@ setup() {
     [[ "$output" == *"Warning: ss not found"* ]]
 }
 
+# --- Unit tests: server data readiness ---
+
+# bats test_tags=unit
+@test "server_http_host: 127.0.0.1 when binding all addresses, else -ip.bind, else -ip" {
+    ARGS=(-dir=/data)
+    run server_http_host; [[ "$output" == "127.0.0.1" ]]
+    ARGS=(-ip.bind=0.0.0.0 -ip=yop)
+    run server_http_host; [[ "$output" == "127.0.0.1" ]]
+    ARGS=(-ip.bind=::)
+    run server_http_host; [[ "$output" == "127.0.0.1" ]]
+    ARGS=(-ip=yop -ip.bind=10.0.0.5)
+    run server_http_host; [[ "$output" == "10.0.0.5" ]]
+    ARGS=(-ip.bind=fd00::5)
+    run server_http_host; [[ "$output" == "[fd00::5]" ]]
+    # weed: an empty -ip.bind means the -ip address
+    ARGS=(-ip=yop)
+    run server_http_host; [[ "$output" == "yop" ]]
+}
+
+# bats test_tags=unit
+@test "server_arg: last value of -NAME= in ARGS, else the default" {
+    ARGS=(-master.port=10001 -master=false -master.port.grpc=30001)
+    run server_arg master.port 9333; [[ "$output" == "10001" ]]
+    run server_arg master true; [[ "$output" == "false" ]]
+    run server_arg volume.port 8080; [[ "$output" == "8080" ]]
+}
+
+# bats test_tags=unit
+@test "master_has_leader: true only when /cluster/status names a leader" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 1 1
+    run master_has_leader 127.0.0.1 10001
+    [[ "$status" -eq 0 ]]
+
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 1
+    run master_has_leader 127.0.0.1 10001
+    [[ "$status" -ne 0 ]]
+
+    # master not answering
+    run master_has_leader 127.0.0.1 10002
+    [[ "$status" -ne 0 ]]
+}
+
+# bats test_tags=unit
+@test "volume_registered: the master must know at least the volumes the server has" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 2 2
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -eq 0 ]]
+
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 1 2
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -ne 0 ]]
+
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" none 2
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -ne 0 ]]
+
+    # an empty volume server counts once it is registered
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 0 0
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -eq 0 ]]
+
+    # the node of another volume server does not count: Url srv:10101 is not ...:1010
+    mkdir -p "$STUB_CURL_DIR/1010"
+    printf '{"Volumes":[]}' > "$STUB_CURL_DIR/1010/status"
+    run volume_registered 127.0.0.1 10001 1010
+    [[ "$status" -ne 0 ]]
+
+    # volume server not answering
+    rm "$STUB_CURL_DIR/10101/status"
+    run volume_registered 127.0.0.1 10001 10101
+    [[ "$status" -ne 0 ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: returns at once when the master has a leader and knows the volumes" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 3 3
+    ARGS=(-master.port=10001 -volume.port=10101 -filer=true)
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Master has a leader and knows the volumes after 0s"* ]]
+    [[ "$output" != *"Warning"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: waits for the leader and the volume registration" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=15
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 3
+    ( sleep 1.5; stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" none 3
+      sleep 1.5; stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 3 3 ) &
+    ARGS=(-master.port=10001 -volume.port=10101)
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ Master\ has\ a\ leader\ and\ knows\ the\ volumes\ after\ [2-9]s ]]
+    [[ "$output" != *"Warning"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: after the timeout warns which part is missing and succeeds" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=1
+    ARGS=(-master.port=10001 -volume.port=10101)
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 3
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: master has no leader after 1s; reporting ready anyway"* ]]
+
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" 2 3
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: master does not know all volumes of 127.0.0.1:10101 after 1s; reporting ready anyway"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: the timeout counts from the start passed in" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=3
+    ARGS=(-master.port=10001 -volume.port=10101)
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 3
+    # the ports already took 5 s of the 3 s budget: give up at the first check
+    local start=$(( ${EPOCHREALTIME/[.,]/} - 5000000 ))
+    SECONDS=0
+    run wait_for_server_data $$ "$start"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: master has no leader after 3s"* ]]
+    (( SECONDS <= 1 ))
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: exits 1 when weed dies while waiting" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export SEAWEEDFS_READY_TIMEOUT=10
+    ARGS=(-master.port=10001 -volume.port=10101)
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "" none 3
+    sleep 0 &
+    local dead=$!
+    wait "$dead"
+    run wait_for_server_data "$dead" "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"weed process died while waiting for the master"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: nothing to wait for without a master; the leader only without a volume server" {
+    setup_stub_path
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export STUB_CURL_CALLS="${BATS_TEST_TMPDIR}/curl-calls"
+    ARGS=(-master=false -volume.port=10101 -filer=true)
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ ! -s "$STUB_CURL_CALLS" ]]
+
+    # no volume server: a leader is enough, its volumes are not asked for
+    stub_master_state "$STUB_CURL_DIR" 10001 10101 "srv:10001.20001" none 0
+    ARGS=(-master.port=10001 -volume=false)
+    run wait_for_server_data $$ "${EPOCHREALTIME/[.,]/}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Master has a leader"* ]]
+    run grep -q ':10101/' "$STUB_CURL_CALLS"
+    [[ "$status" -ne 0 ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_server_data: without curl or python3 warns and does not wait" {
+    run bash -c 'source "$1"; ARGS=(-master.port=10001); PATH=/nonexistent; wait_for_server_data $$ 0' _ "${DIST_DIR}/seaweedfs-service.sh"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: curl not found, not waiting for the master leader and volumes"* ]]
+}
+
 # --- Integration tests ---
 
 # Helper: set up stubs for integration tests
@@ -444,6 +623,9 @@ make_tmp_fixture() {
     export STUB_SS_LISTEN_FILE="${BATS_TEST_TMPDIR}/listen"
     export SEAWEEDFS_READY_TIMEOUT=15
     : > "$STUB_SS_LISTEN_FILE"
+    # the master already has a leader and knows the volume: only the ports are waited for
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    stub_master_state "$STUB_CURL_DIR" 9333 8080 "localhost:9333.19333" 1 1
     # weed defaults for a server without filer: master 9333/19333, volume 8080/18080
     ( sleep 5; echo "0.0.0.0:9333 [::]:19333 0.0.0.0:8080 [::]:18080" > "$STUB_SS_LISTEN_FILE" ) &
 
@@ -457,6 +639,37 @@ make_tmp_fixture() {
     # at the moment of --ready all four ports were listening
     [[ "$(grep -c -- '--ready' "$STUB_NOTIFY_LOG")" -eq 1 ]]
     grep -- '--ready' "$STUB_NOTIFY_LOG" | grep -q -- '\[::\]:18080'
+}
+
+# bats test_tags=integration
+@test "service.sh: server notifies ready only after the master has a leader and knows its volumes" {
+    setup_integration
+    create_stub_weed
+    export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=12
+    export STUB_NOTIFY_LOG="${BATS_TEST_TMPDIR}/notify.log"
+    export STUB_SS_LISTEN="0.0.0.0:9333 [::]:19333 0.0.0.0:8080 [::]:18080"
+    export STUB_CURL_DIR="${BATS_TEST_TMPDIR}/curl"
+    export STUB_STATE_FILE="${BATS_TEST_TMPDIR}/state"
+    export SEAWEEDFS_READY_TIMEOUT=20
+    echo "no leader" > "$STUB_STATE_FILE"
+    stub_master_state "$STUB_CURL_DIR" 9333 8080 "" none 2
+    # the state file changes first, so at notify time it never lags behind the master
+    ( sleep 5; echo "leader" > "$STUB_STATE_FILE"
+      stub_master_state "$STUB_CURL_DIR" 9333 8080 "localhost:9333.19333" none 2
+      sleep 2; echo "volumes" > "$STUB_STATE_FILE"
+      stub_master_state "$STUB_CURL_DIR" 9333 8080 "localhost:9333.19333" 2 2 ) &
+
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-minimal.xml")
+
+    run timeout 40 "${DIST_DIR}/seaweedfs-service.sh" test-server "$fixture"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Ports listening after 0s"* ]]
+    [[ "$output" == *"Master has a leader and knows the volumes after"* ]]
+    [[ "$output" != *"Warning"* ]]
+    [[ "$(grep -c -- '--ready' "$STUB_NOTIFY_LOG")" -eq 1 ]]
+    grep -- '--ready' "$STUB_NOTIFY_LOG" | grep -q 'state=\[volumes\]'
 }
 
 # bats test_tags=integration

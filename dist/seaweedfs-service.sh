@@ -156,6 +156,141 @@ wait_for_ports() {
     done
 }
 
+# Value of -NAME= in ARGS (the last one wins, as in weed), else DEFAULT
+server_arg() {
+    local name=$1 value=$2 arg
+    for arg in "${ARGS[@]}"; do
+        if [[ "$arg" == "-$name="* ]]; then
+            value=${arg#*=}
+        fi
+    done
+    echo "$value"
+}
+
+# Address to reach a server's HTTP ports: its -ip.bind, 127.0.0.1 when it binds all
+# addresses, and -ip when -ip.bind is empty (weed then binds to the -ip address)
+server_http_host() {
+    local bind
+    bind=$(server_arg ip.bind "")
+    if [[ -z "$bind" ]]; then
+        bind=$(server_arg ip "")
+    fi
+    case "$bind" in
+        "" | 0.0.0.0 | :: | "[::]") echo "127.0.0.1" ;;
+        *:*) echo "[$bind]" ;;
+        *) echo "$bind" ;;
+    esac
+}
+
+# Does /cluster/status of the master at HOST:PORT name a raft leader?
+master_has_leader() {
+    local host=$1 port=$2 status
+    status=$(curl -s -m 2 "http://${host}:${port}/cluster/status" 2>/dev/null) || return 1
+    [[ "$status" =~ \"Leader\":\"[^\"]+\" ]]
+}
+
+# Number of volumes in a volume server's /status JSON on stdin; -1 if it is not that JSON
+count_local_volumes() {
+    python3 -c '
+import json, sys
+try:
+    print(len(json.load(sys.stdin).get("Volumes") or []))
+except (ValueError, AttributeError):
+    print(-1)
+'
+}
+
+# Volumes the master knows for the volume server on PORT, from /dir/status JSON on stdin;
+# -1 if that volume server is not registered
+count_master_volumes() {
+    python3 -c '
+import json, sys
+suffix = ":" + sys.argv[1]
+try:
+    topology = json.load(sys.stdin).get("Topology") or {}
+except (ValueError, AttributeError):
+    print(-1)
+    sys.exit(0)
+for dc in topology.get("DataCenters") or []:
+    for rack in dc.get("Racks") or []:
+        for node in rack.get("DataNodes") or []:
+            if str(node.get("Url", "")).endswith(suffix):
+                print(int(node.get("Volumes") or 0))
+                sys.exit(0)
+print(-1)
+' "$1"
+}
+
+# Does the master at HOST:MASTER_PORT know all volumes of the volume server at
+# HOST:VOLUME_PORT? Until it does, reads of those volumes fail with "volume N not found".
+volume_registered() {
+    local host=$1 master_port=$2 volume_port=$3 status topology local_count master_count
+    status=$(curl -s -m 2 "http://${host}:${volume_port}/status" 2>/dev/null) || return 1
+    topology=$(curl -s -m 2 "http://${host}:${master_port}/dir/status" 2>/dev/null) || return 1
+    local_count=$(count_local_volumes <<< "$status")
+    master_count=$(count_master_volumes "$volume_port" <<< "$topology")
+    [[ "$local_count" -ge 0 && "$master_count" -ge "$local_count" ]]
+}
+
+# A server's data is readable only once its master has a raft leader and knows the
+# volumes of its volume server. Until then a read fails with "volume N not found", and
+# weed mount keeps that answer for about 30 s: on a reboot on 2026-11-11 nginx could not
+# read its certificates for 45 s although every port listened. Waits for both within the
+# same ready_timeout as the ports, counted from START_US (EPOCHREALTIME without its
+# separator); exits 1 if weed dies. A server without a master of its own has nothing to
+# wait for here.
+wait_for_server_data() {
+    local pid=$1 start_us=$2
+    if ! is_true "$(server_arg master true)"; then
+        return 0
+    fi
+    local cmd
+    for cmd in curl python3; do
+        if ! command -v "$cmd" &>/dev/null; then
+            echo "Warning: $cmd not found, not waiting for the master leader and volumes"
+            return 0
+        fi
+    done
+
+    local timeout host master_port volume_port with_volume=false leader waited
+    timeout=$(ready_timeout)
+    host=$(server_http_host)
+    master_port=$(server_arg master.port 9333)
+    volume_port=$(server_arg volume.port 8080)
+    if is_true "$(server_arg volume true)"; then
+        with_volume=true
+    fi
+    while true; do
+        leader=false
+        if master_has_leader "$host" "$master_port"; then
+            leader=true
+            if [[ "$with_volume" == "false" ]] || volume_registered "$host" "$master_port" "$volume_port"; then
+                waited=$(( (${EPOCHREALTIME/[.,]/} - start_us) / 1000000 ))
+                if [[ "$with_volume" == "true" ]]; then
+                    echo "Master has a leader and knows the volumes after ${waited}s"
+                else
+                    echo "Master has a leader after ${waited}s"
+                fi
+                return 0
+            fi
+        fi
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "Error: weed process died while waiting for the master"
+            exit 1
+        fi
+        waited=$(( (${EPOCHREALTIME/[.,]/} - start_us) / 1000000 ))
+        if (( waited >= timeout )); then
+            if [[ "$leader" == "true" ]]; then
+                echo "Warning: master does not know all volumes of $host:$volume_port after ${timeout}s; reporting ready anyway"
+            else
+                echo "Warning: master has no leader after ${timeout}s; reporting ready anyway"
+            fi
+            return 0
+        fi
+        sleep 1
+    done
+}
+
 # Wait for service to be ready and send systemd notification
 wait_for_ready() {
     local pid=$1
@@ -202,14 +337,18 @@ wait_for_ready() {
             echo "Error: weed process died before ready"
             exit 1
         fi
-        # A server is ready once its master, volume and filer listen: units ordered
-        # after it (mount, filer.sync) connect to them right away
+        # A server is ready once its master, volume and filer listen and its master has
+        # a leader and knows the volumes: units ordered after it (mount, filer.sync)
+        # connect right away, and reads through the mount find the volumes.
+        # Both waits share one ready_timeout.
         if [[ "$service_type" == "server" ]]; then
+            local start_us=${EPOCHREALTIME/[.,]/}
             local -a ports
             read -r -a ports <<< "$(server_ready_ports)"
             if [[ ${#ports[@]} -gt 0 ]]; then
                 wait_for_ports "$pid" "${ports[@]}"
             fi
+            wait_for_server_data "$pid" "$start_us"
         fi
         systemd-notify --ready
     fi

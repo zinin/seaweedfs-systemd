@@ -338,7 +338,7 @@ EOF
 }
 
 # Generate the drop-in of a SeaweedFS service itself: its dependencies and, for a server,
-# RestartMode=direct. A server is reported ready only once its ports listen
+# RestartMode=direct. A server is reported ready only once its ports listen and its master knows its volumes
 # (seaweedfs-service.sh). If weed fails before that, the default restart mode fails the
 # start job, and systemd fails the start of every unit ordered after the server (mount,
 # filer.sync, units bound to the mount) with "dependency": Restart= brings back only the
