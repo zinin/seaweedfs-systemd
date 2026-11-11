@@ -199,6 +199,19 @@ setup() {
     [[ "$output" == "8888 18888" ]]
 }
 
+# bats test_tags=unit
+@test "server_ready_ports: s3, sftp, iam, webdav and mq turn the filer on, as weed does" {
+    local flag
+    for flag in -s3=true -sftp=true -iam=1 -webdav=true -mq.broker=true -mq.agent=true; do
+        ARGS=(-master.port=10001 -volume.port=10101 -filer=false "$flag")
+        run server_ready_ports
+        [[ "$output" == "10001 20001 10101 20101 8888 18888" ]] || { echo "$flag: $output"; false; }
+    done
+    ARGS=(-master.port=10001 -volume.port=10101 -s3=false -s3.port=8333)
+    run server_ready_ports
+    [[ "$output" == "10001 20001 10101 20101" ]]
+}
+
 # --- Unit tests: wait_for_ports ---
 
 # bats test_tags=unit
@@ -242,6 +255,53 @@ setup() {
     run wait_for_ports $$ 10001 20201
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"Warning: ports not listening after 1s: 20201;"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: the timeout is wall-clock seconds, not loop passes" {
+    setup_stub_path
+    export STUB_SS_LISTEN=""
+    export STUB_SS_DELAY=1.5
+    export STUB_SS_CALLS="${BATS_TEST_TMPDIR}/ss-calls"
+    export SEAWEEDFS_READY_TIMEOUT=2
+    run wait_for_ports $$ 10001
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: ports not listening after 2s: 10001;"* ]]
+    # 1.5 s per check + 1 s pause: past 2 s after the second check; counting passes would take three
+    [[ "$(wc -l < "$STUB_SS_CALLS")" -eq 2 ]]
+}
+
+# bats test_tags=unit
+@test "ready_timeout: 45 by default, decimal seconds, anything else falls back to 45" {
+    unset SEAWEEDFS_READY_TIMEOUT
+    run ready_timeout
+    [[ "$output" == "45" ]]
+
+    SEAWEEDFS_READY_TIMEOUT=20 run ready_timeout
+    [[ "$output" == "20" ]]
+
+    # a leading zero is still decimal, not octal
+    SEAWEEDFS_READY_TIMEOUT=08 run ready_timeout
+    [[ "$output" == "8" ]]
+
+    local value
+    for value in 45s abc -1 ""; do
+        SEAWEEDFS_READY_TIMEOUT=$value run ready_timeout
+        [[ "$status" -eq 0 ]]
+        [[ "$output" == *"Warning: SEAWEEDFS_READY_TIMEOUT='$value' is not a number of seconds, using 45"* ]] \
+            || [[ -z "$value" && "$output" == "45" ]]
+        [[ "${lines[-1]}" == "45" ]]
+    done
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: an invalid SEAWEEDFS_READY_TIMEOUT warns and still waits" {
+    setup_stub_path
+    export STUB_SS_LISTEN="0.0.0.0:10001"
+    SEAWEEDFS_READY_TIMEOUT=45s run wait_for_ports $$ 10001
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: SEAWEEDFS_READY_TIMEOUT='45s' is not a number of seconds, using 45"* ]]
+    [[ "$output" == *"Ports listening after 0s: 10001"* ]]
 }
 
 # bats test_tags=unit

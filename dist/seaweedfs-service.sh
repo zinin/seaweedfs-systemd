@@ -62,10 +62,11 @@ grpc_port() {
 }
 
 # Ports a `weed server` listens on once it serves: HTTP and gRPC of the master and
-# the volume server (unless disabled) and of the filer (if enabled).
+# the volume server (unless disabled) and of the filer (if enabled: by -filer, or by
+# -s3, -sftp, -iam, -webdav, -mq.broker or -mq.agent, which turn it on in weed).
 # Reads ARGS built by build_args; defaults are weed's.
 server_ready_ports() {
-    local master=true volume=true filer=false
+    local master=true volume=true filer=false filer_implied=false
     local master_port=9333 master_grpc=0 volume_port=8080 volume_grpc=0 filer_port=8888 filer_grpc=0
     local arg
     for arg in "${ARGS[@]}"; do
@@ -79,6 +80,11 @@ server_ready_ports() {
             -filer=*) filer=${arg#*=} ;;
             -filer.port=*) filer_port=${arg#*=} ;;
             -filer.port.grpc=*) filer_grpc=${arg#*=} ;;
+            -s3=* | -sftp=* | -iam=* | -webdav=* | -mq.broker=* | -mq.agent=*)
+                if is_true "${arg#*=}"; then
+                    filer_implied=true
+                fi
+                ;;
         esac
     done
 
@@ -89,27 +95,43 @@ server_ready_ports() {
     if is_true "$volume"; then
         ports+=("$volume_port" "$(grpc_port "$volume_port" "$volume_grpc")")
     fi
-    if is_true "$filer"; then
+    if is_true "$filer" || [[ "$filer_implied" == "true" ]]; then
         ports+=("$filer_port" "$(grpc_port "$filer_port" "$filer_grpc")")
     fi
     echo "${ports[*]}"
 }
 
+# Seconds a server may take to listen on its ports: SEAWEEDFS_READY_TIMEOUT, default 45.
+# With the 3.5 s before the wait and the XML parsing it stays below the unit's
+# TimeoutStartSec=60. Anything but whole seconds falls back to 45 with a warning.
+ready_timeout() {
+    local timeout=${SEAWEEDFS_READY_TIMEOUT:-45}
+    if [[ ! "$timeout" =~ ^[0-9]+$ ]]; then
+        echo "Warning: SEAWEEDFS_READY_TIMEOUT='$timeout' is not a number of seconds, using 45" >&2
+        timeout=45
+    fi
+    echo $((10#$timeout))
+}
+
 # Wait until every given TCP port listens on some address. Exits 1 if weed dies meanwhile.
-# After SEAWEEDFS_READY_TIMEOUT seconds (default 45, below the unit's TimeoutStartSec=60)
-# gives up with a warning, and the caller reports ready anyway, as before this check:
-# a slow server must not fail and take its dependents down with it.
+# After ready_timeout seconds of wall-clock time gives up with a warning, and the caller
+# reports ready anyway, as before this check: a slow server must not fail and take its
+# dependents down with it.
 wait_for_ports() {
     local pid=$1
     shift
-    local timeout=${SEAWEEDFS_READY_TIMEOUT:-45}
+    local timeout
+    timeout=$(ready_timeout)
 
     if ! command -v ss &>/dev/null; then
         echo "Warning: ss not found, not waiting for ports: $*"
         return 0
     fi
 
-    local waited=0 listening port
+    # Wall-clock time, microseconds (EPOCHREALTIME's separator follows the locale):
+    # slow passes under boot load must not stretch the wait past TimeoutStartSec
+    local start=${EPOCHREALTIME/[.,]/}
+    local waited listening port
     local -a missing
     while true; do
         listening=$(ss -Hltn 2>/dev/null | awk '{n = split($4, a, ":"); print a[n]}' || true)
@@ -117,6 +139,7 @@ wait_for_ports() {
         for port in "$@"; do
             grep -qxF -- "$port" <<< "$listening" || missing+=("$port")
         done
+        waited=$(( (${EPOCHREALTIME/[.,]/} - start) / 1000000 ))
         if [[ ${#missing[@]} -eq 0 ]]; then
             echo "Ports listening after ${waited}s: $*"
             return 0
@@ -130,7 +153,6 @@ wait_for_ports() {
             return 0
         fi
         sleep 1
-        waited=$((waited + 1))
     done
 }
 

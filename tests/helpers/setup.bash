@@ -52,9 +52,12 @@ STUB
 
     # ss stub: lists local addresses as listening TCP sockets, like `ss -Hltn`.
     # Addresses come from STUB_SS_LISTEN_FILE if set, else from STUB_SS_LISTEN,
-    # e.g. "0.0.0.0:9333 [::]:19333 *:8080".
+    # e.g. "0.0.0.0:9333 [::]:19333 *:8080". STUB_SS_DELAY makes each call slow,
+    # STUB_SS_CALLS names a file that gets a line per call.
     cat > "$stub_bin/ss" <<'STUB'
 #!/bin/bash
+[[ -n "${STUB_SS_CALLS:-}" ]] && echo call >> "$STUB_SS_CALLS"
+[[ -n "${STUB_SS_DELAY:-}" ]] && sleep "$STUB_SS_DELAY"
 listen=${STUB_SS_LISTEN:-}
 if [[ -n "${STUB_SS_LISTEN_FILE:-}" ]]; then
     listen=$(cat "$STUB_SS_LISTEN_FILE" 2>/dev/null || true)

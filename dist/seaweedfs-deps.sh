@@ -337,6 +337,37 @@ EOF
     echo "After=${after_list[*]}"
 }
 
+# Generate the drop-in of a SeaweedFS service itself: its dependencies and, for a server,
+# RestartMode=direct. A server is reported ready only once its ports listen
+# (seaweedfs-service.sh). If weed fails before that, the default restart mode fails the
+# start job, and systemd fails the start of every unit ordered after the server (mount,
+# filer.sync, units bound to the mount) with "dependency": Restart= brings back only the
+# server. With RestartMode=direct (systemd 254+; older versions ignore it with a warning)
+# the server goes straight back to activating and those units wait for it. A running
+# server that crashes also restarts alone. Mounts keep the default: units bound to a
+# mount must stop when it fails.
+generate_service_dropin() {
+    local config_path="$1"
+    local service_type="$2"
+    shift 2
+    # Remaining args are: "unit:dep_type" pairs
+    if [[ $# -gt 0 ]]; then
+        generate_dependencies_dropin "$config_path" "$@"
+    else
+        cat <<EOF
+# Managed by seaweedfs-deps.sh - DO NOT EDIT
+# Source: $config_path
+EOF
+    fi
+    if [[ "$service_type" == "server" ]]; then
+        cat <<EOF
+
+[Service]
+RestartMode=direct
+EOF
+    fi
+}
+
 # Parse XML and process all dependencies
 process_config() {
     local config="$1"
@@ -406,7 +437,8 @@ process_config() {
         echo "No dependents found"
     fi
 
-    # Process dependencies (seaweedfs services depending on others)
+    # Process dependencies (seaweedfs services depending on others) and the restart
+    # mode of servers: both go to the service's own drop-in
     echo ""
     echo "=== Processing dependencies ==="
 
@@ -414,7 +446,6 @@ process_config() {
     while IFS= read -r service_id; do
         [[ -z "$service_id" ]] && continue
         validate_unit_name "$service_id" || continue
-        found_deps=1
 
         local -a deps_array=()
 
@@ -443,7 +474,13 @@ process_config() {
             -t -m "//x:service[x:id='$service_id']/x:dependencies/x:unit" \
             -v "." -o $'\t' -v "@dependency-type" -n "$config" 2>/dev/null || true)
 
-        if [[ ${#deps_array[@]} -eq 0 ]]; then
+        local service_type
+        service_type=$(xmlstarlet sel -N x="$NS" \
+            -t -v "//x:service[x:id='$service_id']/x:type" "$config" 2>/dev/null || true)
+
+        if [[ ${#deps_array[@]} -gt 0 ]]; then
+            found_deps=1
+        elif [[ "$service_type" != "server" ]]; then
             continue
         fi
 
@@ -453,15 +490,15 @@ process_config() {
         if [[ "$dry_run" == "true" ]]; then
             echo "Would create: $dropin_file"
             echo "--- Content ---"
-            generate_dependencies_dropin "$CONFIG_PATH" "${deps_array[@]}"
+            generate_service_dropin "$CONFIG_PATH" "$service_type" "${deps_array[@]}"
             echo "---------------"
         else
             echo "Creating: $dropin_file"
             mkdir -p "$dropin_dir"
-            generate_dependencies_dropin "$CONFIG_PATH" "${deps_array[@]}" > "$dropin_file"
+            generate_service_dropin "$CONFIG_PATH" "$service_type" "${deps_array[@]}" > "$dropin_file"
         fi
     done < <(xmlstarlet sel -N x="$NS" \
-        -t -m "//x:service[x:dependencies]" -v "x:id" -n "$config" 2>/dev/null || true)
+        -t -m "//x:service[x:dependencies or x:type='server']" -v "x:id" -n "$config" 2>/dev/null || true)
 
     if [[ $found_deps -eq 0 ]]; then
         echo "No dependencies found"
