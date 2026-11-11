@@ -159,6 +159,111 @@ setup() {
     done
 }
 
+# --- Unit tests: server_ready_ports ---
+
+# bats test_tags=unit
+@test "server_ready_ports: weed defaults when no ports are set" {
+    ARGS=(-dir=/data)
+    run server_ready_ports
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "9333 19333 8080 18080" ]]
+}
+
+# bats test_tags=unit
+@test "server_ready_ports: ports from args, filer enabled, gRPC = port + 10000" {
+    ARGS=(-dir=/data -master.port=10001 -volume.port=10101 -filer=true -filer.port=10201 -metricsPort=10301)
+    run server_ready_ports
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "10001 20001 10101 20101 10201 20201" ]]
+}
+
+# bats test_tags=unit
+@test "server_ready_ports: explicit gRPC ports win over port + 10000" {
+    ARGS=(-master.port=10001 -master.port.grpc=30001 -volume.port=10101 -volume.port.grpc=30101
+        -filer=1 -filer.port=10201 -filer.port.grpc=30201)
+    run server_ready_ports
+    [[ "$output" == "10001 30001 10101 30101 10201 30201" ]]
+}
+
+# bats test_tags=unit
+@test "server_ready_ports: disabled master and filer add no ports" {
+    ARGS=(-master=false -volume.port=10101 -filer=false -filer.port=10201)
+    run server_ready_ports
+    [[ "$output" == "10101 20101" ]]
+}
+
+# bats test_tags=unit
+@test "server_ready_ports: filer enabled without port uses weed default 8888" {
+    ARGS=(-master=0 -volume=0 -filer=true)
+    run server_ready_ports
+    [[ "$output" == "8888 18888" ]]
+}
+
+# --- Unit tests: wait_for_ports ---
+
+# bats test_tags=unit
+@test "wait_for_ports: returns at once when all ports listen on any address" {
+    setup_stub_path
+    export STUB_SS_LISTEN="0.0.0.0:10001 [::]:20001 *:10101"
+    run wait_for_ports $$ 10001 20001 10101
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Ports listening after 0s: 10001 20001 10101"* ]]
+    [[ "$output" != *"Warning"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: a port on another address does not count as a suffix match" {
+    setup_stub_path
+    export STUB_SS_LISTEN="0.0.0.0:110001 0.0.0.0:20001"
+    export SEAWEEDFS_READY_TIMEOUT=0
+    run wait_for_ports $$ 10001 20001
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: ports not listening after 0s: 10001;"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: waits for a port that starts listening later" {
+    setup_stub_path
+    export STUB_SS_LISTEN_FILE="${BATS_TEST_TMPDIR}/listen"
+    echo "0.0.0.0:10001" > "$STUB_SS_LISTEN_FILE"
+    ( sleep 2; echo "0.0.0.0:10001 [::]:20201" > "$STUB_SS_LISTEN_FILE" ) &
+    export SEAWEEDFS_READY_TIMEOUT=10
+    run wait_for_ports $$ 10001 20201
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ Ports\ listening\ after\ [1-9][0-9]*s ]]
+    [[ "$output" != *"Warning"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: after the timeout warns with missing ports and succeeds" {
+    setup_stub_path
+    export STUB_SS_LISTEN="0.0.0.0:10001"
+    export SEAWEEDFS_READY_TIMEOUT=1
+    run wait_for_ports $$ 10001 20201
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: ports not listening after 1s: 20201;"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: exits 1 when weed dies while waiting" {
+    setup_stub_path
+    export STUB_SS_LISTEN=""
+    export SEAWEEDFS_READY_TIMEOUT=10
+    sleep 0 &
+    local dead=$!
+    wait "$dead"
+    run wait_for_ports "$dead" 10001
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"weed process died while waiting for ports"* ]]
+}
+
+# bats test_tags=unit
+@test "wait_for_ports: without ss warns and does not wait" {
+    run bash -c 'source "$1"; PATH=/nonexistent; wait_for_ports $$ 10001' _ "${DIST_DIR}/seaweedfs-service.sh"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: ss not found"* ]]
+}
+
 # --- Integration tests ---
 
 # Helper: set up stubs for integration tests
@@ -184,6 +289,10 @@ STUB
 
     # Create run-dir in tmpdir
     mkdir -p "${BATS_TEST_TMPDIR}/run-dir"
+
+    # Stub weed listens on nothing: a server gives up waiting for its ports
+    # quickly unless a test sets a longer timeout
+    export SEAWEEDFS_READY_TIMEOUT=1
 }
 
 # Generate a fixture with run-dir/config-dir/logs-dir replaced to use tmpdir
@@ -263,4 +372,67 @@ make_tmp_fixture() {
     run "${DIST_DIR}/seaweedfs-service.sh" "test'; drop" "${FIXTURES_DIR}/services-minimal.xml"
     [[ "$status" -ne 0 ]]
     [[ "$output" == *"Invalid service ID"* ]]
+}
+
+# bats test_tags=integration
+@test "service.sh: server notifies ready only after its ports listen" {
+    setup_integration
+    create_stub_weed
+    export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=8
+    export STUB_NOTIFY_LOG="${BATS_TEST_TMPDIR}/notify.log"
+    export STUB_SS_LISTEN_FILE="${BATS_TEST_TMPDIR}/listen"
+    export SEAWEEDFS_READY_TIMEOUT=15
+    : > "$STUB_SS_LISTEN_FILE"
+    # weed defaults for a server without filer: master 9333/19333, volume 8080/18080
+    ( sleep 5; echo "0.0.0.0:9333 [::]:19333 0.0.0.0:8080 [::]:18080" > "$STUB_SS_LISTEN_FILE" ) &
+
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-minimal.xml")
+
+    run timeout 30 "${DIST_DIR}/seaweedfs-service.sh" test-server "$fixture"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Ports listening after"* ]]
+    [[ "$output" != *"Warning"* ]]
+    # at the moment of --ready all four ports were listening
+    [[ "$(grep -c -- '--ready' "$STUB_NOTIFY_LOG")" -eq 1 ]]
+    grep -- '--ready' "$STUB_NOTIFY_LOG" | grep -q -- '\[::\]:18080'
+}
+
+# bats test_tags=integration
+@test "service.sh: server notifies ready anyway when its ports never listen" {
+    setup_integration
+    create_stub_weed
+    export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=8
+    export STUB_NOTIFY_LOG="${BATS_TEST_TMPDIR}/notify.log"
+    export STUB_SS_LISTEN=""
+
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-minimal.xml")
+
+    run timeout 30 "${DIST_DIR}/seaweedfs-service.sh" test-server "$fixture"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Warning: ports not listening after 1s: 9333 19333 8080 18080;"* ]]
+    grep -q -- '--ready' "$STUB_NOTIFY_LOG"
+}
+
+# bats test_tags=integration
+@test "service.sh: filer.sync does not wait for ports" {
+    setup_integration
+    create_stub_weed
+    export STUB_WEED_LOG="${BATS_TEST_TMPDIR}/weed.log"
+    export STUB_WEED_SLEEP=5
+    export STUB_NOTIFY_LOG="${BATS_TEST_TMPDIR}/notify.log"
+    export STUB_SS_LISTEN=""
+    export SEAWEEDFS_READY_TIMEOUT=30
+
+    local fixture
+    fixture=$(make_tmp_fixture "${FIXTURES_DIR}/services-filer-sync.xml")
+
+    run timeout 20 "${DIST_DIR}/seaweedfs-service.sh" test-filer-sync "$fixture"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" != *"Ports listening"* ]]
+    [[ "$output" != *"Warning"* ]]
+    grep -q -- '--ready' "$STUB_NOTIFY_LOG"
 }

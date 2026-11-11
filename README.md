@@ -143,6 +143,12 @@ sudo systemctl start seaweedfs@master1
 sudo systemctl enable seaweedfs@master1
 ```
 
+Units are `Type=notify`. A service is reported ready when:
+
+- `mount` — the mount point is mounted (up to 30 s, otherwise the start fails);
+- `server` — its master, volume server and, with `<filer>true</filer>`, filer listen on their HTTP and gRPC ports (gRPC is port + 10000 unless `*.port.grpc` is set). Units ordered after the server, such as `mount` and `filer.sync`, then connect right away. The wait is capped by `SEAWEEDFS_READY_TIMEOUT` (default 45 s); after that the server is reported ready anyway, with a warning in the journal;
+- any other type — the process is still alive 3 seconds after start.
+
 ### Dependencies Management
 
 The `seaweedfs-deps.sh` script manages systemd drop-in files for service dependencies.
