@@ -46,6 +46,116 @@ get_mount_dir() {
         -t -v "//x:service[x:id='$SERVICE_ID']/x:mount-args/x:dir" "$CONFIG_PATH"
 }
 
+# True for an xs:boolean "true" or "1"
+is_true() {
+    [[ "$1" == "true" || "$1" == "1" ]]
+}
+
+# gRPC port of a weed component: explicit -*.port.grpc, else HTTP port + 10000 (weed's rule)
+grpc_port() {
+    local http=$1 grpc=$2
+    if [[ "$grpc" -gt 0 ]]; then
+        echo "$grpc"
+    else
+        echo $((http + 10000))
+    fi
+}
+
+# Ports a `weed server` listens on once it serves: HTTP and gRPC of the master and
+# the volume server (unless disabled) and of the filer (if enabled: by -filer, or by
+# -s3, -sftp, -iam, -webdav, -mq.broker or -mq.agent, which turn it on in weed).
+# Reads ARGS built by build_args; defaults are weed's.
+server_ready_ports() {
+    local master=true volume=true filer=false filer_implied=false
+    local master_port=9333 master_grpc=0 volume_port=8080 volume_grpc=0 filer_port=8888 filer_grpc=0
+    local arg
+    for arg in "${ARGS[@]}"; do
+        case "$arg" in
+            -master=*) master=${arg#*=} ;;
+            -master.port=*) master_port=${arg#*=} ;;
+            -master.port.grpc=*) master_grpc=${arg#*=} ;;
+            -volume=*) volume=${arg#*=} ;;
+            -volume.port=*) volume_port=${arg#*=} ;;
+            -volume.port.grpc=*) volume_grpc=${arg#*=} ;;
+            -filer=*) filer=${arg#*=} ;;
+            -filer.port=*) filer_port=${arg#*=} ;;
+            -filer.port.grpc=*) filer_grpc=${arg#*=} ;;
+            -s3=* | -sftp=* | -iam=* | -webdav=* | -mq.broker=* | -mq.agent=*)
+                if is_true "${arg#*=}"; then
+                    filer_implied=true
+                fi
+                ;;
+        esac
+    done
+
+    local -a ports=()
+    if is_true "$master"; then
+        ports+=("$master_port" "$(grpc_port "$master_port" "$master_grpc")")
+    fi
+    if is_true "$volume"; then
+        ports+=("$volume_port" "$(grpc_port "$volume_port" "$volume_grpc")")
+    fi
+    if is_true "$filer" || [[ "$filer_implied" == "true" ]]; then
+        ports+=("$filer_port" "$(grpc_port "$filer_port" "$filer_grpc")")
+    fi
+    echo "${ports[*]}"
+}
+
+# Seconds a server may take to listen on its ports: SEAWEEDFS_READY_TIMEOUT, default 45.
+# With the 3.5 s before the wait and the XML parsing it stays below the unit's
+# TimeoutStartSec=60. Anything but whole seconds falls back to 45 with a warning.
+ready_timeout() {
+    local timeout=${SEAWEEDFS_READY_TIMEOUT:-45}
+    if [[ ! "$timeout" =~ ^[0-9]+$ ]]; then
+        echo "Warning: SEAWEEDFS_READY_TIMEOUT='$timeout' is not a number of seconds, using 45" >&2
+        timeout=45
+    fi
+    echo $((10#$timeout))
+}
+
+# Wait until every given TCP port listens on some address. Exits 1 if weed dies meanwhile.
+# After ready_timeout seconds of wall-clock time gives up with a warning, and the caller
+# reports ready anyway, as before this check: a slow server must not fail and take its
+# dependents down with it.
+wait_for_ports() {
+    local pid=$1
+    shift
+    local timeout
+    timeout=$(ready_timeout)
+
+    if ! command -v ss &>/dev/null; then
+        echo "Warning: ss not found, not waiting for ports: $*"
+        return 0
+    fi
+
+    # Wall-clock time, microseconds (EPOCHREALTIME's separator follows the locale):
+    # slow passes under boot load must not stretch the wait past TimeoutStartSec
+    local start=${EPOCHREALTIME/[.,]/}
+    local waited listening port
+    local -a missing
+    while true; do
+        listening=$(ss -Hltn 2>/dev/null | awk '{n = split($4, a, ":"); print a[n]}' || true)
+        missing=()
+        for port in "$@"; do
+            grep -qxF -- "$port" <<< "$listening" || missing+=("$port")
+        done
+        waited=$(( (${EPOCHREALTIME/[.,]/} - start) / 1000000 ))
+        if [[ ${#missing[@]} -eq 0 ]]; then
+            echo "Ports listening after ${waited}s: $*"
+            return 0
+        fi
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "Error: weed process died while waiting for ports"
+            exit 1
+        fi
+        if (( waited >= timeout )); then
+            echo "Warning: ports not listening after ${timeout}s: ${missing[*]}; reporting ready anyway"
+            return 0
+        fi
+        sleep 1
+    done
+}
+
 # Wait for service to be ready and send systemd notification
 wait_for_ready() {
     local pid=$1
@@ -91,6 +201,15 @@ wait_for_ready() {
         if ! kill -0 "$pid" 2>/dev/null; then
             echo "Error: weed process died before ready"
             exit 1
+        fi
+        # A server is ready once its master, volume and filer listen: units ordered
+        # after it (mount, filer.sync) connect to them right away
+        if [[ "$service_type" == "server" ]]; then
+            local -a ports
+            read -r -a ports <<< "$(server_ready_ports)"
+            if [[ ${#ports[@]} -gt 0 ]]; then
+                wait_for_ports "$pid" "${ports[@]}"
+            fi
         fi
         systemd-notify --ready
     fi

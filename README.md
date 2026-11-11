@@ -143,6 +143,12 @@ sudo systemctl start seaweedfs@master1
 sudo systemctl enable seaweedfs@master1
 ```
 
+Units are `Type=notify`. A service is reported ready when:
+
+- `mount` — the mount point is mounted (up to 30 s, otherwise the start fails);
+- `server` — its master, volume server and filer listen on their HTTP and gRPC ports (gRPC is port + 10000 unless `*.port.grpc` is set). The filer counts when `<filer>true</filer>` is set or when `s3`, `sftp`, `iam`, `webdav`, `mq.broker` or `mq.agent` turn it on, as `weed server` does. Units ordered after the server, such as `mount` and `filer.sync`, then connect right away. The wait is capped by `SEAWEEDFS_READY_TIMEOUT` (whole seconds of wall-clock time, default 45); after that the server is reported ready anyway, with a warning in the journal. If weed exits during the wait, the start fails and `Restart=` starts the server again; `seaweedfs-deps.sh` gives server units `RestartMode=direct`, so the units ordered after the server wait for it instead of failing (see [Dependencies Management](#dependencies-management));
+- any other type — the process is still alive 3 seconds after start.
+
 ### Dependencies Management
 
 The `seaweedfs-deps.sh` script manages systemd drop-in files for service dependencies.
@@ -175,6 +181,19 @@ The `dependency-type` attribute controls systemd dependency directive:
 - `wants` — soft dependency
 
 See the [XML Configuration](#xml-configuration) example above for usage.
+
+#### Servers restart in place
+
+Every `server` service also gets a drop-in, with or without `<dependencies>`:
+
+```ini
+[Service]
+RestartMode=direct
+```
+
+A server is reported ready only once its ports listen. With the default restart mode, a server that fails during that wait fails its start job, and systemd then fails the start of every unit ordered after it — `mount`, `filer.sync`, units bound to the mount — with result `dependency`; `Restart=` brings back only the server. With `RestartMode=direct` the server goes straight back to activating, and those units wait for it. The same applies to a running server that crashes: it restarts alone, and the units that need it are not stopped or restarted with it. A manual `systemctl restart` of the server still restarts them. Mounts keep the default mode: units bound to a mount must stop when it fails.
+
+`RestartMode=` needs systemd 254 or newer; older versions ignore the line with a warning. After updating `seaweedfs-service.sh`, run `seaweedfs-deps.sh apply` so that servers get the drop-in.
 
 ---
 

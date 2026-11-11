@@ -125,6 +125,38 @@ XMLEOF
     [[ "$output" != *"Requires="* ]]
 }
 
+# --- Unit tests: generate_service_dropin ---
+
+# bats test_tags=unit
+@test "generate_service_dropin: a server gets RestartMode=direct after its dependencies" {
+    local output
+    output=$(generate_service_dropin "/etc/seaweedfs/services.xml" server "postgresql:requires")
+
+    [[ "$output" == *"# Managed by seaweedfs-deps.sh - DO NOT EDIT"* ]]
+    [[ "$output" == *"[Unit]"*"Requires=postgresql.service"*"After=postgresql.service"*"[Service]"*"RestartMode=direct"* ]]
+}
+
+# bats test_tags=unit
+@test "generate_service_dropin: a server without dependencies gets only [Service]" {
+    local output
+    output=$(generate_service_dropin "/etc/seaweedfs/services.xml" server)
+
+    [[ "$output" == *"# Managed by seaweedfs-deps.sh - DO NOT EDIT"* ]]
+    [[ "$output" == *"[Service]"*"RestartMode=direct"* ]]
+    [[ "$output" != *"[Unit]"* ]]
+    [[ "$output" != *"After="* ]]
+}
+
+# bats test_tags=unit
+@test "generate_service_dropin: other types keep the default restart mode" {
+    local type output
+    for type in mount filer.sync admin filer master volume; do
+        output=$(generate_service_dropin "/etc/seaweedfs/services.xml" "$type" "seaweedfs@s.service:binds-to")
+        [[ "$output" == *"BindsTo=seaweedfs@s.service"* ]]
+        [[ "$output" != *"RestartMode"* ]] || { echo "$type: $output"; false; }
+    done
+}
+
 # --- Integration tests ---
 
 # bats test_tags=integration
@@ -216,4 +248,37 @@ XMLEOF
     run "${DIST_DIR}/seaweedfs-deps.sh" clean
     [[ "$status" -eq 0 ]]
     [[ ! -f "${DROPIN_DIR_BASE}/nginx.service.d/seaweedfs.conf" ]]
+}
+
+# bats test_tags=integration
+@test "deps.sh apply: server drop-in has RestartMode=direct, mount bound to it does not" {
+    setup_stub_path
+    export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
+    mkdir -p "$DROPIN_DIR_BASE"
+
+    run "${DIST_DIR}/seaweedfs-deps.sh" apply "${FIXTURES_DIR}/services-mixed-deps.xml"
+    [[ "$status" -eq 0 ]]
+
+    # main-server has no <dependencies>, but still gets a drop-in for the restart mode
+    local server_conf mount_conf
+    server_conf=$(cat "${DROPIN_DIR_BASE}/seaweedfs@main-server.service.d/seaweedfs.conf")
+    [[ "$server_conf" == *"[Service]"*"RestartMode=direct"* ]]
+    [[ "$server_conf" != *"[Unit]"* ]]
+
+    mount_conf=$(cat "${DROPIN_DIR_BASE}/seaweedfs@main-mount.service.d/seaweedfs.conf")
+    [[ "$mount_conf" == *"BindsTo=seaweedfs@main-server.service"* ]]
+    [[ "$mount_conf" != *"RestartMode"* ]]
+}
+
+# bats test_tags=integration
+@test "deps.sh check: dry-run shows the server restart mode and creates no files" {
+    setup_stub_path
+    export DROPIN_DIR_BASE="${BATS_TEST_TMPDIR}/systemd"
+    mkdir -p "$DROPIN_DIR_BASE"
+
+    run "${DIST_DIR}/seaweedfs-deps.sh" check "${FIXTURES_DIR}/services-with-dependencies.xml"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Would create: ${DROPIN_DIR_BASE}/seaweedfs@test-server.service.d/seaweedfs.conf"* ]]
+    [[ "$output" == *"RestartMode=direct"* ]]
+    [[ "$(find "$DROPIN_DIR_BASE" -name seaweedfs.conf | wc -l)" -eq 0 ]]
 }
