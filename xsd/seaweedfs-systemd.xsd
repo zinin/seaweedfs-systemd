@@ -205,6 +205,7 @@
             <xs:element name="iam.ip" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.port" type="xs:int" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="localSocket" type="xs:string" minOccurs="0"/>
@@ -241,6 +242,7 @@
             <xs:element name="s3.iam.readOnly" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.iam.selfServiceRequiresGrant" type="xs:boolean" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.localSocket" type="xs:string" minOccurs="0"/>
@@ -313,6 +315,7 @@
     <xs:complexType name="FilerMetaBackupArgs">
         <xs:all>
             <xs:element name="config" type="xs:string" minOccurs="0"/>
+            <xs:element name="entriesPerSecond" type="xs:int" minOccurs="0"/>
             <xs:element name="excludePrefixes" type="xs:string" minOccurs="0"/>
             <xs:element name="filer" type="xs:string" minOccurs="0"/>
             <xs:element name="filerDir" type="xs:string" minOccurs="0"/>
@@ -405,6 +408,7 @@
             <xs:element name="iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="key.file" type="xs:string" minOccurs="0"/>
@@ -527,6 +531,7 @@
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
@@ -602,6 +607,7 @@
             <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.ip.bind" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.localSocket" type="xs:string" minOccurs="0"/>
@@ -848,6 +854,7 @@
             <xs:element name="filer.exposeDirectoryData" type="xs:boolean" minOccurs="0"/>
             <xs:element name="filer.filerGroup" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="filer.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.localSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="filer.maxMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.port" type="xs:int" minOccurs="0"/>
@@ -912,6 +919,7 @@
             <xs:element name="s3.iceberg.credentialDurationSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.iceberg.credentialRole" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.idleTimeout" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.inflightUploadDataTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.key.file" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.localFilerSocket" type="xs:string" minOccurs="0"/>
             <xs:element name="s3.localSocket" type="xs:string" minOccurs="0"/>
@@ -925,6 +933,11 @@
             <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
+            <xs:element name="vector" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="vector.binary" type="xs:string" minOccurs="0"/>
+            <xs:element name="vector.metricsPort" type="xs:int" minOccurs="0"/>
+            <xs:element name="vector.port" type="xs:int" minOccurs="0"/>
+            <xs:element name="vectorBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="volume.allowUntrustedRemoteEndpoints" type="xs:boolean" minOccurs="0"/>
             <xs:element name="volume.compactionMBps" type="xs:int" minOccurs="0"/>
             <xs:element name="volume.compactionMaxParallelCommits" type="xs:int" minOccurs="0"/>
