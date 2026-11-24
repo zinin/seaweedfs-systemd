@@ -253,8 +253,12 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.preStopSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.routedLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.unreachableOwnerTTL" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="s3.volumeLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="saveToFilerLimit" type="xs:int" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
@@ -421,8 +425,12 @@
             <xs:element name="port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="preStopSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="readerCacheSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="routedLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="unreachableOwnerTTL" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="volumeLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -446,6 +454,8 @@
 
     <xs:complexType name="MountArgs">
         <xs:all>
+            <xs:element name="accessReport" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="accessReport.interval" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="autofs" type="xs:boolean" minOccurs="0"/>
             <xs:element name="allowOthers" type="xs:boolean" minOccurs="0"/>
             <xs:element name="asyncDio" type="xs:boolean" minOccurs="0"/>
@@ -543,6 +553,7 @@
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusSessionExpiry" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="grpc.localSocketDir" type="xs:string" minOccurs="0"/>
             <xs:element name="iam" type="xs:boolean" minOccurs="0"/>
             <xs:element name="iam.config" type="xs:string" minOccurs="0"/>
             <xs:element name="iam.idleTimeout" type="xs:int" minOccurs="0"/>
@@ -616,8 +627,12 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.preStopSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.routedLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.unreachableOwnerTTL" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="s3.volumeLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="sftp" type="xs:boolean" minOccurs="0"/>
             <xs:element name="sftp.authMethods" type="xs:string" minOccurs="0"/>
             <xs:element name="sftp.bannerMessage" type="xs:string" minOccurs="0"/>
@@ -866,6 +881,7 @@
             <xs:element name="filer.tusMaxSizeMB" type="xs:int" minOccurs="0"/>
             <xs:element name="filer.tusSessionExpiry" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="filer.ui.deleteDir" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="grpc.localSocketDir" type="xs:string" minOccurs="0"/>
             <xs:element name="idleTimeout" type="xs:int" minOccurs="0"/>
             <xs:element name="ip" type="xs:string" minOccurs="0"/>
             <xs:element name="ip.bind" type="xs:string" minOccurs="0"/>
@@ -930,8 +946,12 @@
             <xs:element name="s3.port.https" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.iceberg" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.port.lance" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.preStopSeconds" type="xs:int" minOccurs="0"/>
             <xs:element name="s3.readerCacheSizeMB" type="xs:int" minOccurs="0"/>
+            <xs:element name="s3.routedLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="s3.tlsVerifyClientCert" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="s3.unreachableOwnerTTL" type="tns:GoDuration" minOccurs="0"/>
+            <xs:element name="s3.volumeLookupTimeout" type="tns:GoDuration" minOccurs="0"/>
             <xs:element name="tableBucket" type="xs:string" minOccurs="0"/>
             <xs:element name="vector" type="xs:boolean" minOccurs="0"/>
             <xs:element name="vector.binary" type="xs:string" minOccurs="0"/>
